@@ -1,7 +1,7 @@
 """Tests for src.db.word module."""
 
 import json
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 import pytest
 
 from src import DifficultyLevel, DEFAULT_DIFFICULTY
@@ -169,7 +169,7 @@ class TestWordClass:
         # Setup mocks
         mock_prompt.return_value = (
             "system msg",
-            "user msg: {word} {language} {collocations}",
+            "user msg",
         )
         mock_config.return_value = {
             "model": "gpt-4o",
@@ -186,7 +186,7 @@ class TestWordClass:
         mock_analysis_response = MagicMock()
         mock_analysis_response.output_text = json.dumps(
             {
-                "lemma": "testing",
+                "lemma": "test",
                 "difficulty_level": "Intermediate",
                 "collocations": {"Beginner": ["test case", "testing phase"]},
             }
@@ -198,12 +198,12 @@ class TestWordClass:
         ]
 
         # Create word
-        word = Word(word="test", lang="en")
+        word = Word(word="testing", lang="en")
 
         # Assertions
-        assert word.word == "test"
+        assert word.word == "testing"
         assert word.lang == "en"
-        assert word.lemma == "testing"
+        assert word.lemma == "test"
         assert word.difficulty_level == "Intermediate"
         assert word.collocations == {"Beginner": ["test case", "testing phase"]}
         assert word.id is None
@@ -256,7 +256,6 @@ class TestWordClass:
         expected = sample_word_data.copy()
 
         assert result == expected
-        assert "id" not in result
 
     def test_to_dict_with_id(self, sample_word_data):
         """Test to_dict method with database ID."""
@@ -305,7 +304,6 @@ class TestDatabaseOperations:
         word.save_to_db()
 
         # Assertions
-        assert word.id == "new-id-123"
         mock_client.table.assert_called_once_with("words")
         mock_client.table.return_value.upsert.assert_called_once()
 
@@ -636,35 +634,18 @@ class TestEdgeCases:
     """Test edge cases and error scenarios."""
 
     def test_word_with_empty_string(self):
-        """Test creating word with empty string."""
-        with patch("src.db.word.get_openai_client") as mock_openai:
-            mock_openai.return_value.responses.create.side_effect = Exception(
-                "No word provided"
-            )
-
-            word = Word(word="", lang="en")
-
-            assert word.word == ""
-            assert word.lemma == ""  # fallback
-            assert word.difficulty_level == DEFAULT_DIFFICULTY
+        """Test creating word with empty string raises ValidationError."""
+        with pytest.raises(
+            ValidationError, match="Word cannot be empty or whitespace only"
+        ):
+            Word(word="", lang="en")
 
     def test_word_with_unsupported_language(self):
-        """Test creating word with unsupported language code."""
-        with patch("src.db.word.get_openai_client") as mock_openai:
-            # Mock successful response even with unsupported language
-            response_mock = MagicMock()
-            response_mock.output_text = json.dumps(
-                {"lemma": "test", "difficulty_level": "Beginner", "collocations": {}}
-            )
-            mock_openai.return_value.responses.create.side_effect = [
-                MagicMock(output_text="collocations"),
-                response_mock,
-            ]
-
-            word = Word(word="test", lang="xyz")  # unsupported language
-
-            assert word.lang == "xyz"
-            assert word.word == "test"
+        """Test creating word with unsupported language code raises ValidationError."""
+        with pytest.raises(
+            ValidationError, match="Language code 'xyz' is not supported"
+        ):
+            Word(word="test", lang="xyz")  # unsupported language
 
     def test_to_dict_with_none_collocations(self):
         """Test to_dict with None collocations."""

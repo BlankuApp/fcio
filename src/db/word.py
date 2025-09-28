@@ -143,14 +143,13 @@ class Word:
             Dictionary containing all word attributes, excluding None values.
         """
         result = {
+            "id": self.id,
             "word": self.word,
             "lang": self.lang,
             "lemma": self.lemma,
             "difficulty_level": self.difficulty_level,
             "collocations": self.collocations,
         }
-        if self.id is not None:
-            result["id"] = self.id
         return result
 
     def save_to_db(self) -> None:
@@ -193,9 +192,9 @@ class Word:
             response = client.from_("words").select("*").eq("id", word_id).execute()
             if response.error or not response.data:
                 error_msg = (
-                    f"Word with ID '{word_id}' not found"
-                    if not response.data
-                    else response.error.message
+                    response.error.message
+                    if response.error and hasattr(response.error, "message")
+                    else f"Word with ID '{word_id}' not found"
                 )
                 raise DatabaseError(error_msg)
 
@@ -312,7 +311,7 @@ class Word:
             AIServiceError: If AI service call fails.
             WordAnalysisError: If analysis results are invalid.
         """
-        if collocations_str is None:
+        if collocations_str is None or not collocations_str.strip():
             collocations_str = self._collect_collocations()
 
         try:
@@ -378,6 +377,9 @@ class Word:
         except AIServiceError:
             # Re-raise AI service errors
             raise
+        except WordAnalysisError:
+            # Re-raise WordAnalysisError so it is not wrapped
+            raise
         except Exception as e:
             error_msg = f"Failed to analyze word '{self.word}': {e}"
             logger.error(error_msg)
@@ -423,4 +425,10 @@ def analyze_word(
     temp_word = Word.__new__(Word)
     temp_word.word = word
     temp_word.lang = lang
-    return temp_word._analyze_word(collocations_str)
+
+    # Collect collocations if not provided
+    if collocations_str is None:
+        collocations_str = temp_word._collect_collocations()
+
+    analysis_result = temp_word._analyze_word(collocations_str)
+    return analysis_result

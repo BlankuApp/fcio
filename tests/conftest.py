@@ -1,8 +1,6 @@
 """Pytest configuration and fixtures for FCIO tests."""
 
-import json
 from unittest.mock import MagicMock, Mock
-from typing import Any, Dict
 
 import pytest
 

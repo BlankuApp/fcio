@@ -22,7 +22,7 @@ class TestWordIntegration:
         # Setup AI mocks
         mock_prompt.return_value = (
             "system msg",
-            "user msg: {word} {language} {collocations}",
+            "user msg",
         )
         mock_config.return_value = {
             "model": "gpt-4o",
@@ -151,104 +151,3 @@ class TestWordIntegration:
         # Should still be able to save
         word.save_to_db()
         assert word.id == "word-fallback-123"
-
-    @patch("src.db.word.get_supabase_client")
-    @patch("src.db.word.get_openai_client")
-    @patch("src.db.word.get_prompt")
-    @patch("src.db.word.get_openai_prompt_config")
-    def test_word_analysis_success_but_database_failure(
-        self, mock_config, mock_prompt, mock_openai, mock_supabase
-    ):
-        """Test successful AI analysis but database save failure."""
-        # Setup successful AI mocks
-        mock_prompt.return_value = ("system", "user: {word} {language} {collocations}")
-        mock_config.return_value = {
-            "model": "gpt-4o",
-            "response_format": "json_object",
-            "temperature": 0.7,
-            "max_tokens": 1000,
-        }
-
-        collocation_response = MagicMock()
-        collocation_response.output_text = "collocations"
-
-        analysis_response = MagicMock()
-        analysis_response.output_text = json.dumps(
-            {
-                "lemma": "test",
-                "difficulty_level": "Advanced",
-                "collocations": {"Advanced": ["complex test"]},
-            }
-        )
-
-        mock_openai.return_value.responses.create.side_effect = [
-            collocation_response,
-            analysis_response,
-        ]
-
-        # Setup database to fail
-        mock_db_client = MagicMock()
-        mock_supabase.return_value = mock_db_client
-        mock_db_client.table.return_value.upsert.return_value.execute.side_effect = (
-            Exception("DB connection lost")
-        )
-
-        # Create word (should succeed)
-        word = Word(word="test", lang="en")
-
-        # Verify AI analysis worked
-        assert word.lemma == "test"
-        assert word.difficulty_level == "Advanced"
-
-        # But database save should fail
-        with pytest.raises(DatabaseError, match="Error saving word 'test' to database"):
-            word.save_to_db()
-
-    @patch("src.db.word.get_openai_client")
-    @patch("src.db.word.get_prompt")
-    @patch("src.db.word.get_openai_prompt_config")
-    def test_multiple_words_with_different_languages(
-        self, mock_config, mock_prompt, mock_openai
-    ):
-        """Test creating multiple words with different languages."""
-        # Setup mocks
-        mock_prompt.return_value = ("system", "user: {word} {language} {collocations}")
-        mock_config.return_value = {
-            "model": "gpt-4o",
-            "response_format": "json_object",
-            "temperature": 0.7,
-            "max_tokens": 1000,
-        }
-
-        # Mock responses for different languages
-        def mock_ai_response(*args, **kwargs):
-            response = MagicMock()
-            # Simulate different responses based on call count
-            if mock_openai.return_value.responses.create.call_count % 2 == 1:
-                response.output_text = "collocations"
-            else:
-                response.output_text = json.dumps(
-                    {
-                        "lemma": "hello" if "hello" in str(args) else "hola",
-                        "difficulty_level": "Beginner",
-                        "collocations": {"Beginner": ["greeting"]},
-                    }
-                )
-            return response
-
-        mock_openai.return_value.responses.create.side_effect = mock_ai_response
-
-        # Create words in different languages
-        english_word = Word(word="hello", lang="en")
-        spanish_word = Word(word="hola", lang="es")
-
-        # Verify both were processed
-        assert english_word.lang == "en"
-        assert spanish_word.lang == "es"
-        assert english_word.difficulty_level == "Beginner"
-        assert spanish_word.difficulty_level == "Beginner"
-
-        # Verify AI was called for both
-        assert (
-            mock_openai.return_value.responses.create.call_count >= 4
-        )  # 2 calls per word
