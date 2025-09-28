@@ -14,9 +14,26 @@ pages = []
 main_page = st.Page("web/main_page.py", title="Home", icon="🏠")
 pages.append(main_page)
 
+
+# Helper function to check admin access
+def check_admin_access() -> bool:
+    """Check if the current user has admin access."""
+    if not auth:
+        return False
+
+    # Configure admin emails as needed
+    admin_emails = ["a@b.com"]
+    return auth.get("email") in admin_emails
+
+
 if auth:
     user_page = st.Page("web/user_page.py", title="User", icon="👤")
     pages.append(user_page)
+
+    # Add admin page if user has admin access
+    if check_admin_access():
+        admin_page = st.Page("web/admin_page.py", title="Admin", icon="🛠️")
+        pages.append(admin_page)
 elif cookie_controller.get("access_token"):
     try:
         response = sign_in_with_token(

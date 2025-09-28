@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from src import LANGUAGES, console, get_openai_client, get_supabase_client, status
+from src.prompts import get_prompt, get_openai_prompt_config
 from src.pyfsrs.card import Card, State
 
 
@@ -95,18 +96,27 @@ class WCard(Card):
     def _post_process(self, collocations_str: str) -> dict:
         with status:
             status.update(f"[bold green]Processing collocations for '{self.word}'...")
+
+            # Get formatted prompt messages
+            system_message, user_message = get_prompt(
+                "word_analysis_simple",
+                word=self.word,
+                language=LANGUAGES.get(self.lang, "English"),
+                collocations=collocations_str,
+            )
+
+            # Get OpenAI configuration for this prompt
+            config = get_openai_prompt_config("word_analysis_simple")
+
             response = get_openai_client().responses.create(
-                model="gpt-4o-mini",
+                model=config["model"],
                 input=[
                     {
                         "role": "system",
                         "content": [
                             {
                                 "type": "input_text",
-                                "text": (
-                                    f"You are a helpful assistant that finds the lemma (dictionary form) of the given word/phrase in {LANGUAGES.get(self.lang, 'English')}."
-                                    "Also collects the collocations from the given input and reports them as a list of strings."
-                                ),
+                                "text": system_message,
                             },
                         ],
                     },
@@ -115,20 +125,16 @@ class WCard(Card):
                         "content": [
                             {
                                 "type": "input_text",
-                                "text": (
-                                    f"Input word/phrase: '{self.word}'"
-                                    f"\nCollocations string: '{collocations_str}'"
-                                    '\nJSON Output: {"lemma": "<lemma>", "collocations": ["<collocation1>", "<collocation2>", ...]}'
-                                ),
+                                "text": user_message,
                             }
                         ],
                     },
                 ],
-                text={"format": {"type": "json_object"}},
+                text={"format": {"type": config["response_format"]}},
                 reasoning={},
                 tools=[],
-                temperature=1,
-                max_output_tokens=2048,
+                temperature=config["temperature"],
+                max_output_tokens=config["max_tokens"],
                 top_p=1,
                 store=False,
                 include=["web_search_call.action.sources"],
@@ -139,31 +145,30 @@ class WCard(Card):
     def _get_collocations(self) -> str:
         with status:
             status.update(f"[bold green]Fetching collocations for '{self.word}'...")
+
+            # Get formatted prompt messages
+            system_message, user_message = get_prompt(
+                "collocations_simple",
+                word=self.word,
+                language=LANGUAGES.get(self.lang, "English"),
+            )
+
+            # Get OpenAI configuration for this prompt
+            config = get_openai_prompt_config("collocations_simple")
+
             response = get_openai_client().responses.create(
-                model="gpt-4o-mini",
+                model=config["model"],
                 input=[
                     {
                         "role": "system",
-                        # "content": "You are a helpful assistant that provides collocations for a given word in a specified language. A collocation is a natural combination of words that are often used together, for different patterns (e.g., noun + verb, adjective + noun, verb + adverb, etc.)  \nFor each pattern, provide maximum 5 collocations. \nConsider the most common and useful collocations only and avoid rare or archaic ones.  \nProvide the collocations as a comma-separated list with no extra explanations, translations, examples or anything similar.",
-                        "content": "\n".join(
-                            [
-                                "You are a helpful assistant that provides collocations for a given word in a specified language.",
-                                "A collocation is a natural combination of words that are often used together, for different patterns (e.g., noun + verb, adjective + noun, verb + adverb, etc.)",
-                                "Categorize the collocations by their patterns.",
-                                "For each pattern, provide maximum 5 collocations.",
-                                "Consider the most common and useful collocations only and avoid rare or archaic ones.",
-                                "Provide the collocations as a comma-separated list with no extra explanations, translations, examples or anything similar.",
-                            ]
-                        ),
+                        "content": system_message,
                     },
                     {
                         "role": "user",
-                        "content": (
-                            f"Provide the common collocations for the word '{self.word}' in {LANGUAGES.get(self.lang, 'English')}."
-                        ),
+                        "content": user_message,
                     },
                 ],
-                text={"format": {"type": "text"}},
+                text={"format": {"type": config["response_format"]}},
                 reasoning={},
                 tools=[
                     {
@@ -180,8 +185,8 @@ class WCard(Card):
                     }
                 ],
                 tool_choice={"type": "web_search_preview"},
-                temperature=1,
-                max_output_tokens=2048,
+                temperature=config["temperature"],
+                max_output_tokens=config["max_tokens"],
                 top_p=1,
                 store=False,
                 include=["web_search_call.action.sources"],

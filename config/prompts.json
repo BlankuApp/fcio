@@ -1,0 +1,30 @@
+{
+    "prompts": {
+        "collocations": {
+            "name": "Collocation Collection",
+            "description": "Prompt for collecting collocations for a given word in a specified language",
+            "model": "gpt-5-mini",
+            "response_format": "text",
+            "temperature": 1.0,
+            "max_tokens": 2048,
+            "system_message": "You are a helpful assistant that provides collocations for a given word in a specified language.\nA collocation is a natural combination of words that are often used together, for different patterns (e.g., noun + verb, adjective + noun, verb + adverb, etc.)\nCategorize the collocations by their patterns.\nFor each pattern, provide maximum 5 collocations.\nConsider the most common and useful collocations only and avoid rare or archaic ones.\nProvide the collocations as a comma-separated list with no extra explanations, translations, examples or anything similar.\nFor each collocation, assign the difficulty level (Beginner, Elementary, Intermediate, Upper Intermediate, Advanced, Native/Fluent) in parentheses.",
+            "user_message_template": "Provide the common collocations for the word '{word}' in {language}."
+        },
+        "word_analysis": {
+            "name": "Word Analysis",
+            "description": "Prompt for analyzing word lemma, difficulty level, and processing collocations",
+            "system_message": "You are a helpful assistant that finds the lemma (dictionary form) of the given word/phrase in {language}.\nDetect the difficulty level (Beginner, Elementary, Intermediate, Upper Intermediate, Advanced, Native/Fluent) of the word/phrase as well.\nAlso collects the collocations from the given input text and reports them as a JSON object.",
+            "user_message_template": "Input word/phrase: '{word}'\nCollocations string: '{collocations}'\nJSON Output: {{\"lemma\": \"<lemma>\", \"difficulty_level\": \"<level>\", \"collocations\": {{\"Beginner\": [\"<collocation1>\", \"<collocation2>\", ...], \"Elementary\": [...], \"Intermediate\": [...], \"Upper Intermediate\": [...], \"Advanced\": [...], \"Native/Fluent\": [...]}}}}",
+            "model": "gpt-4o-mini",
+            "response_format": "json_object",
+            "temperature": 1,
+            "max_tokens": 2048
+        }
+    },
+    "metadata": {
+        "version": "1.0.0",
+        "last_updated": "2025-09-28",
+        "created_by": "AI Assistant",
+        "description": "Configuration file for AI prompts used in FCIO application"
+    }
+}
