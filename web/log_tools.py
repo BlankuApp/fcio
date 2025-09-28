@@ -3,7 +3,7 @@ import time
 import streamlit as st
 from streamlit_cookies_controller import CookieController
 
-from src import sign_in_with_email, LANGUAGES
+from src import sign_in_with_email, LANGUAGES, DifficultyLevel
 
 
 @st.dialog(title="Login")
@@ -75,14 +75,7 @@ def signup_modal():
         )
         st.selectbox(
             "Proficiency Level",
-            options=[
-                "Beginner",
-                "Elementary",
-                "Intermediate",
-                "Upper Intermediate",
-                "Advanced",
-                "Native/Fluent",
-            ],
+            options=DifficultyLevel.get_values(),
             key="proficiency_level",
             help="Select your overall language proficiency level.",
             index=0,

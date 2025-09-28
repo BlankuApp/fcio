@@ -1,4 +1,5 @@
 import os
+from enum import Enum
 
 from dotenv import load_dotenv
 from supabase import Client as SB_Client, create_client
@@ -64,6 +65,31 @@ LANGUAGES = {
     "bs": "Bosnian",
     "af": "Afrikaans",
 }
+
+
+class DifficultyLevel(Enum):
+    """Enumeration of word difficulty levels for language learning."""
+
+    BEGINNER = "Beginner"
+    ELEMENTARY = "Elementary"
+    INTERMEDIATE = "Intermediate"
+    UPPER_INTERMEDIATE = "Upper Intermediate"
+    ADVANCED = "Advanced"
+    NATIVE_FLUENT = "Native/Fluent"
+
+    @classmethod
+    def get_values(cls) -> list[str]:
+        """Get list of all difficulty level values."""
+        return [level.value for level in cls]
+
+    @classmethod
+    def is_valid(cls, value: str) -> bool:
+        """Check if a string is a valid difficulty level."""
+        return value in cls.get_values()
+
+
+# Set default difficulty using enum
+DEFAULT_DIFFICULTY = DifficultyLevel.BEGINNER.value
 
 
 _supabase_client: SB_Client | None = None
