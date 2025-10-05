@@ -308,7 +308,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                 <div className="text-center text-sm">
                     {mode === "login" ? (
                         <p>
-                            Don't have an account?{" "}
+                            Don&apos;t have an account?{" "}
                             <button
                                 type="button"
                                 onClick={switchMode}

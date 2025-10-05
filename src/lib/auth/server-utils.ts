@@ -1,4 +1,3 @@
-import type { TargetLanguage } from "@/lib/constants/languages"
 import { createClient } from "@/lib/supabase/server"
 
 /**

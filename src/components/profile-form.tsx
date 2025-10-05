@@ -1,17 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import { createClient } from "@/lib/supabase/client"
-import { LANGUAGES, getLanguageDisplayName, PROFICIENCY_LEVELS, type TargetLanguage } from "@/lib/constants/languages"
 import { checkAuth } from "@/lib/auth/utils"
+import { getLanguageDisplayName, LANGUAGES, PROFICIENCY_LEVELS, type TargetLanguage } from "@/lib/constants/languages"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export function ProfileForm() {
     const [loading, setLoading] = useState(true)
@@ -214,7 +213,7 @@ export function ProfileForm() {
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle>Languages to Learn</CardTitle>
-                            <CardDescription>Languages you're currently studying</CardDescription>
+                            <CardDescription>Languages you&apos;re currently studying</CardDescription>
                         </div>
                         <Button
                             type="button"
@@ -280,7 +279,7 @@ export function ProfileForm() {
                         </div>
                     ) : (
                         <p className="text-sm text-muted-foreground text-center py-8">
-                            No languages added yet. Click "+ Add Language" to get started.
+                            No languages added yet. Click &ldquo;+ Add Language&rdquo; to get started.
                         </p>
                     )}
                 </CardContent>
