@@ -5,6 +5,7 @@ import {
   LibraryBig,
   BotMessageSquare,
   UserCircle,
+  Shield,
 } from "lucide-react"
 
 import { MainNav } from "@/components/nav-main"
@@ -16,6 +17,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { isAdmin } from "@/lib/auth/utils"
 
 const main_nav = [
   {
@@ -26,6 +28,37 @@ const main_nav = [
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [isAdminUser, setIsAdminUser] = React.useState(false)
+  const [isLoading, setIsLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const adminStatus = await isAdmin()
+        setIsAdminUser(adminStatus)
+      } catch (error) {
+        // Silently fail - user is not admin or not logged in
+        setIsAdminUser(false)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    checkAdminStatus()
+  }, [])
+
+  const navItems = React.useMemo(() => {
+    const items = [...main_nav]
+    if (isAdminUser) {
+      items.push({
+        name: "Admin",
+        url: "/admin",
+        icon: Shield,
+      })
+    }
+    return items
+  }, [isAdminUser])
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -35,7 +68,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </a>
       </SidebarHeader>
       <SidebarContent>
-        <MainNav projects={main_nav} />
+        {!isLoading && <MainNav projects={navItems} />}
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

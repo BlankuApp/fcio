@@ -34,10 +34,20 @@ export async function middleware(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // Optionally protect routes
-    // if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
-    //   return NextResponse.redirect(new URL('/', request.url))
-    // }
+    // Protect admin routes - require admin access
+    if (request.nextUrl.pathname.startsWith('/admin')) {
+        if (!user) {
+            // Not authenticated - redirect to home
+            return NextResponse.redirect(new URL('/', request.url))
+        }
+
+        // Check if user is admin
+        const isAdmin = user.user_metadata?.is_admin === true
+        if (!isAdmin) {
+            // Not admin - redirect to home
+            return NextResponse.redirect(new URL('/', request.url))
+        }
+    }
 
     return supabaseResponse
 }

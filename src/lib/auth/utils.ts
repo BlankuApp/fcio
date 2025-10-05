@@ -2,8 +2,9 @@ import type { TargetLanguage } from "@/lib/constants/languages"
 import { createClient } from "@/lib/supabase/client"
 
 /**
- * Check if user is authenticated by checking Supabase session
- * This checks for JWT tokens stored in cookies
+ * CLIENT-SIDE ONLY: Check if user is authenticated by checking Supabase session
+ * Use this in Client Components (components with "use client" directive)
+ * For Server Components, use checkAuth from @/lib/auth/server-utils instead
  */
 export async function checkAuth() {
     const supabase = createClient()
@@ -28,25 +29,30 @@ export async function checkAuth() {
 }
 
 /**
- * Get current user from Supabase session
+ * CLIENT-SIDE ONLY: Get current user from Supabase session
+ * Use this in Client Components (components with "use client" directive)
+ * For Server Components, use getCurrentUser from @/lib/auth/server-utils instead
  */
 export async function getCurrentUser() {
     const supabase = createClient()
 
     try {
-        const { data: { user }, error } = await supabase.auth.getUser()
+        // Use getSession instead of getUser to avoid AuthSessionMissingError
+        const { data: { session }, error } = await supabase.auth.getSession()
 
         if (error) {
-            console.error('Error getting user:', error)
+            console.error('Error getting session:', error)
             return null
         }
 
-        return user
+        return session?.user || null
     } catch (error) {
         console.error('Error in getCurrentUser:', error)
         return null
     }
 }
+
+
 
 /**
  * Sign in with email and password
@@ -113,4 +119,32 @@ export async function signOut() {
     }
 
     return { success: true }
+}
+
+/** 
+ * CLIENT-SIDE ONLY: Check if current user is an admin
+ * Use this in Client Components (components with "use client" directive)
+ * For Server Components, use isAdmin from @/lib/auth/server-utils instead
+ */
+export async function isAdmin() {
+    const user = await getCurrentUser()
+    return user?.user_metadata?.is_admin === true
+}
+
+/**
+ * Require admin access - throws error if not admin
+ * Use this in Server Components or API routes to protect admin-only content
+ */
+export async function requireAdmin() {
+    const user = await getCurrentUser()
+
+    if (!user) {
+        throw new Error('Authentication required')
+    }
+
+    if (user.user_metadata?.is_admin !== true) {
+        throw new Error('Admin access required')
+    }
+
+    return user
 }
