@@ -2,8 +2,9 @@
 
 import * as React from "react"
 import {
-  BadgeQuestionMark,
-  Bot,
+  LibraryBig,
+  BotMessageSquare,
+  UserCircle,
 } from "lucide-react"
 
 import { MainNav } from "@/components/nav-main"
@@ -16,21 +17,12 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  }
-}
-
 const main_nav = [
   {
-    name: "Review",
-    url: "#",
-    icon: BadgeQuestionMark,
-  }
+    name: "Decks",
+    url: "/decks",
+    icon: LibraryBig,
+  },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -38,7 +30,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <a href="/" className="flex items-center gap-2 text-lg font-semibold hover:text-primary transition-colors px-2 py-2">
-          <Bot className="w-5 h-5" />
+          <BotMessageSquare className="w-5 h-5" />
           <span>AI FlashCards</span>
         </a>
       </SidebarHeader>
@@ -46,7 +38,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <MainNav projects={main_nav} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
