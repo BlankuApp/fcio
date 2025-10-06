@@ -28,9 +28,10 @@ import { useState } from "react"
 interface AuthDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
+    onLoginSuccess?: () => void
 }
 
-export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
+export function AuthDialog({ open, onOpenChange, onLoginSuccess }: AuthDialogProps) {
     const [mode, setMode] = useState<"login" | "signup">("login")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -103,6 +104,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                     }
                     
                     setSuccess(true)
+                    onLoginSuccess?.()
                     onOpenChange(false)
                     router.refresh()
                 } else {

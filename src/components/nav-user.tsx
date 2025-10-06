@@ -8,7 +8,7 @@ import {
   UserCircle,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { use, useEffect, useState } from "react"
 
 import { AuthDialog } from "@/components/auth-dialog"
 import {
@@ -31,7 +31,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { checkAuth } from "@/lib/auth/utils"
 import { createClient } from "@/lib/supabase/client"
 import { getCurrentUserProfile } from "@/lib/user-profile/client-utils"
 import { getUserProfileFromStorage, saveUserProfileToStorage, removeUserProfileFromStorage } from "@/lib/user-profile/browser-storage"
@@ -50,8 +49,7 @@ export function NavUser() {
   const supabase = createClient()
 
   useEffect(() => {
-    // Check for existing session on mount
-    const checkInitialSession = () => {
+    const loadUser = async () => {
       try {
         // Try to get profile from localStorage first (instant, synchronous)
         const cachedProfile = getUserProfileFromStorage()
@@ -63,74 +61,42 @@ export function NavUser() {
             avatar: '',
           }
           setUser(userData)
-          // Note: onAuthStateChange listener will verify the session in background
-          // and update the UI if the session is invalid or expired
+          return
         }
-        // If no cache, do nothing - onAuthStateChange will handle initial session check
-        // This avoids an unnecessary API call on every page load
-      } catch (error) {
-        console.error('NavUser: Error checking initial session:', error)
-      }
-    }
 
-    checkInitialSession()
-
-    // Subscribe to auth changes - this will handle both initial load and auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('NavUser: Auth state changed:', event, session?.user?.email)
-      
-      if (session?.user) {
-        console.log('NavUser: Processing signed in user...')
-        
-        // Always create user data from session first (guaranteed to work)
-        const fallbackUserData = {
-          name: session.user.email?.split('@')[0] || 'User',
-          email: session.user.email || '',
-          avatar: '',
-        }
-        
-        // Set the fallback data immediately to ensure UI updates
-        console.log('NavUser: Setting fallback user data immediately:', fallbackUserData)
-        setUser(fallbackUserData)
-        
-        try {
-          // Try to get profile from database to enhance the data (with timeout)
-          console.log('NavUser: Fetching user profile...')
-          
-          const profilePromise = getCurrentUserProfile()
-          const timeoutPromise = new Promise<null>((resolve) => 
-            setTimeout(() => {
-              console.log('NavUser: Profile fetch timeout')
-              resolve(null)
-            }, 3000) // 3 second timeout
-          )
-          
-          const profile = await Promise.race([profilePromise, timeoutPromise])
-          console.log('NavUser: Profile result:', profile)
-          
+        // If no cache, check authentication and fetch profile
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        if (authUser) {
+          const profile = await getCurrentUserProfile()
           if (profile) {
             const userData = {
-              name: profile.username || fallbackUserData.name,
+              name: profile.username || profile.email?.split('@')[0] || 'User',
               email: profile.email,
               avatar: '',
             }
-            console.log('NavUser: Setting enhanced user data from profile:', userData)
             setUser(userData)
-            
-            // Save profile to localStorage for future use
-            saveUserProfileToStorage(profile)
+            saveUserProfileToStorage(profile) // Cache for future loads
           }
-          // If profile is null (timeout or no profile), we keep the fallback data that's already set
-        } catch (error) {
-          console.error('Error fetching user profile in auth change:', error)
-          // Fallback data is already set, so no need to do anything
         }
-      } else {
-        console.log('NavUser: No session, setting user to null')
+      } catch (error) {
+        console.error('NavUser: Error loading user:', error)
+      }
+    }
+
+    loadUser()
+
+    // Listen to auth state changes (login/logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('NavUser: Auth state changed:', event)
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        loadUser()
+      } else if (event === 'SIGNED_OUT') {
         setUser(null)
+        removeUserProfileFromStorage()
       }
     })
 
+    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe()
     }
