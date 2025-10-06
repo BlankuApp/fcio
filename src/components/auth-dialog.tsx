@@ -76,39 +76,33 @@ export function AuthDialog({ open, onOpenChange, onLoginSuccess }: AuthDialogPro
 
         // Add timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
-            console.log('AuthDialog: Login timeout reached')
             setLoading(false)
             setError("Login is taking too long. Please try again.")
-        }, 10000) // 10 second timeout
+        }, 200000) // 200 second timeout
 
         try {
             if (mode === "login") {
-                console.log('AuthDialog: Starting login process...')
                 const result = await signIn(email, password)
-                console.log('AuthDialog: Login result:', result)
-                
+
                 clearTimeout(timeoutId) // Clear timeout on successful response
-                
+
                 if (result.success) {
-                    console.log('AuthDialog: Login successful, fetching profile...')
-                    
+
                     // Fetch and save user profile to localStorage
                     try {
                         const profile = await getCurrentUserProfile()
                         if (profile) {
                             saveUserProfileToStorage(profile)
-                            console.log('AuthDialog: Profile saved to localStorage')
                         }
                     } catch (error) {
                         console.error('AuthDialog: Failed to fetch/save profile:', error)
                     }
-                    
+
                     setSuccess(true)
                     onLoginSuccess?.()
                     onOpenChange(false)
                     router.refresh()
                 } else {
-                    console.log('AuthDialog: Login failed:', result.error)
                     setError(result.error || "Failed to sign in")
                 }
             } else {
@@ -137,9 +131,9 @@ export function AuthDialog({ open, onOpenChange, onLoginSuccess }: AuthDialogPro
                 }
 
                 const result = await signUp(email, password, username, motherTongues, targetLanguages)
-                
+
                 clearTimeout(timeoutId) // Clear timeout on successful response
-                
+
                 if (result.success) {
                     setSuccess(true)
                     setError("")

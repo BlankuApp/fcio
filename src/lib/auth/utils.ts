@@ -1,6 +1,7 @@
 import type { TargetLanguage } from "@/lib/constants/languages"
 import { createClient } from "@/lib/supabase/client"
 import { createUserProfile, getCurrentUserProfile } from "@/lib/user-profile/client-utils"
+import { getDefaultPrompts } from "@/lib/constants/default-prompts"
 
 /**
  * CLIENT-SIDE ONLY: Check if user is authenticated by checking Supabase session
@@ -8,7 +9,6 @@ import { createUserProfile, getCurrentUserProfile } from "@/lib/user-profile/cli
  * For Server Components, use checkAuth from @/lib/auth/server-utils instead
  */
 export async function checkAuth() {
-    console.log('checkAuth: Checking authentication status')
     const supabase = createClient()
 
     try {
@@ -61,16 +61,13 @@ export async function getCurrentUser() {
  * Credentials are automatically saved to cookies by Supabase
  */
 export async function signIn(email: string, password: string) {
-    console.log('signIn: Starting sign in process')
     const supabase = createClient()
 
-    console.log('signIn: Calling signInWithPassword...')
     const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
     })
 
-    console.log('signIn: Result received:', { success: !error, error: error?.message })
 
     if (error) {
         return { success: false, error: error.message }
@@ -111,6 +108,8 @@ export async function signUp(
                 username: username || '',
                 mother_tongues: Array.isArray(motherTongues) ? motherTongues : motherTongues ? [motherTongues] : [],
                 target_languages: targetLanguages || [],
+                prompts: getDefaultPrompts(),
+                is_admin: false,
             })
         } catch (profileError) {
             console.error('Failed to create user profile:', profileError)

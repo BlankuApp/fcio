@@ -54,7 +54,6 @@ export function NavUser() {
         // Try to get profile from localStorage first (instant, synchronous)
         const cachedProfile = getUserProfileFromStorage()
         if (cachedProfile) {
-          console.log('NavUser: Using cached profile from localStorage (instant load)')
           const userData = {
             name: cachedProfile.username || cachedProfile.email?.split('@')[0] || 'User',
             email: cachedProfile.email,
@@ -87,7 +86,6 @@ export function NavUser() {
 
     // Listen to auth state changes (login/logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('NavUser: Auth state changed:', event)
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         loadUser()
       } else if (event === 'SIGNED_OUT') {

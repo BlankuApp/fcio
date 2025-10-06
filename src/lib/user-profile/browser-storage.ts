@@ -8,7 +8,6 @@ const USER_PROFILE_KEY = 'fcio_user_profile'
 export function saveUserProfileToStorage(profile: UserProfile): void {
     try {
         localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(profile))
-        console.log('User profile saved to localStorage:', profile.username)
     } catch (error) {
         console.error('Failed to save user profile to localStorage:', error)
     }
@@ -24,7 +23,6 @@ export function getUserProfileFromStorage(): UserProfile | null {
             return null
         }
         const profile = JSON.parse(stored) as UserProfile
-        console.log('User profile loaded from localStorage:', profile.username)
         return profile
     } catch (error) {
         console.error('Failed to load user profile from localStorage:', error)
@@ -38,7 +36,6 @@ export function getUserProfileFromStorage(): UserProfile | null {
 export function removeUserProfileFromStorage(): void {
     try {
         localStorage.removeItem(USER_PROFILE_KEY)
-        console.log('User profile removed from localStorage')
     } catch (error) {
         console.error('Failed to remove user profile from localStorage:', error)
     }

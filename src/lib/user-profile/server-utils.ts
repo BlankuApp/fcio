@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import type { CreateUserProfileData, UpdateUserProfileData, UserProfile } from "@/lib/types/user-profile"
 import type { TargetLanguage } from "@/lib/constants/languages"
+import { getDefaultPrompts } from "@/lib/constants/default-prompts"
 
 /**
  * SERVER-SIDE: Create a new user profile in the database
@@ -11,7 +12,7 @@ export async function createUserProfile(profileData: CreateUserProfileData) {
     // Ensure mother_tongues is a proper array, not a stringified array
     let motherTongues: string[] = []
     const mtInput = profileData.mother_tongues
-    
+
     if (Array.isArray(mtInput)) {
         motherTongues = mtInput
     } else if (typeof mtInput === 'string') {
@@ -26,7 +27,7 @@ export async function createUserProfile(profileData: CreateUserProfileData) {
     // Ensure target_languages is a proper array
     let targetLanguages: TargetLanguage[] = []
     const tlInput = profileData.target_languages
-    
+
     if (Array.isArray(tlInput)) {
         targetLanguages = tlInput
     } else if (typeof tlInput === 'string') {
@@ -46,7 +47,8 @@ export async function createUserProfile(profileData: CreateUserProfileData) {
             username: profileData.username,
             mother_tongues: motherTongues,
             target_languages: targetLanguages,
-            is_admin: profileData.is_admin || false,
+            prompts: getDefaultPrompts(),
+            is_admin: false,
         })
         .select()
         .single()
@@ -89,11 +91,11 @@ export async function updateUserProfile(userId: string, updates: UpdateUserProfi
 
     // Ensure mother_tongues is a proper array if provided
     const processedUpdates: Partial<UpdateUserProfileData> = { ...updates }
-    
+
     if (updates.mother_tongues !== undefined) {
         let motherTongues: string[] = []
         const mtInput = updates.mother_tongues
-        
+
         if (Array.isArray(mtInput)) {
             motherTongues = mtInput
         } else if (typeof mtInput === 'string') {
@@ -111,7 +113,7 @@ export async function updateUserProfile(userId: string, updates: UpdateUserProfi
     if (updates.target_languages !== undefined) {
         let targetLanguages: TargetLanguage[] = []
         const tlInput = updates.target_languages
-        
+
         if (Array.isArray(tlInput)) {
             targetLanguages = tlInput
         } else if (typeof tlInput === 'string') {
@@ -166,7 +168,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
 
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
+
     if (userError || !user) {
         return null
     }
