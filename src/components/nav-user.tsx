@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/sidebar"
 import { checkAuth } from "@/lib/auth/utils"
 import { createClient } from "@/lib/supabase/client"
+import { getCurrentUserProfile } from "@/lib/user-profile/client-utils"
 
 interface User {
   name: string
@@ -45,40 +46,78 @@ export function NavUser() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
   useEffect(() => {
-    const fetchUser = async () => {
-      setLoading(true)
-
-      // Check auth using the utility function that checks cookies/JWT
-      const authStatus = await checkAuth()
-
-      if (authStatus.isAuthenticated && authStatus.user) {
-        setUser({
-          name: authStatus.user.user_metadata?.username || authStatus.user.email?.split('@')[0] || 'User',
-          email: authStatus.user.email || '',
-          avatar: authStatus.user.user_metadata?.avatar_url || '',
-        })
-      } else {
-        setUser(null)
+    // Check for existing session on mount
+    const checkInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          console.log('NavUser: Found existing session on mount:', session.user.email)
+          const fallbackUserData = {
+            name: session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            avatar: '',
+          }
+          setUser(fallbackUserData)
+        }
+      } catch (error) {
+        console.error('NavUser: Error checking initial session:', error)
       }
-
-      setLoading(false)
     }
 
-    fetchUser()
+    checkInitialSession()
 
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Subscribe to auth changes - this will handle both initial load and auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('NavUser: Auth state changed:', event, session?.user?.email)
+      
       if (session?.user) {
-        setUser({
-          name: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'User',
+        console.log('NavUser: Processing signed in user...')
+        
+        // Always create user data from session first (guaranteed to work)
+        const fallbackUserData = {
+          name: session.user.email?.split('@')[0] || 'User',
           email: session.user.email || '',
-          avatar: session.user.user_metadata?.avatar_url || '',
-        })
+          avatar: '',
+        }
+        
+        // Set the fallback data immediately to ensure UI updates
+        console.log('NavUser: Setting fallback user data immediately:', fallbackUserData)
+        setUser(fallbackUserData)
+        
+        try {
+          // Try to get profile from database to enhance the data (with timeout)
+          console.log('NavUser: Fetching user profile...')
+          
+          const profilePromise = getCurrentUserProfile()
+          const timeoutPromise = new Promise<null>((resolve) => 
+            setTimeout(() => {
+              console.log('NavUser: Profile fetch timeout')
+              resolve(null)
+            }, 3000) // 3 second timeout
+          )
+          
+          const profile = await Promise.race([profilePromise, timeoutPromise])
+          console.log('NavUser: Profile result:', profile)
+          
+          if (profile) {
+            const userData = {
+              name: profile.username || fallbackUserData.name,
+              email: profile.email,
+              avatar: '',
+            }
+            console.log('NavUser: Setting enhanced user data from profile:', userData)
+            setUser(userData)
+          }
+          // If profile is null (timeout or no profile), we keep the fallback data that's already set
+        } catch (error) {
+          console.error('Error fetching user profile in auth change:', error)
+          // Fallback data is already set, so no need to do anything
+        }
       } else {
+        console.log('NavUser: No session, setting user to null')
         setUser(null)
       }
     })
@@ -93,23 +132,6 @@ export function NavUser() {
     setUser(null)
     router.push('/')
     router.refresh()
-  }
-
-  // Show loading state
-  if (loading) {
-    return (
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton size="lg" disabled>
-            <div className="h-8 w-8 rounded-lg bg-muted animate-pulse" />
-            <div className="grid flex-1 gap-1">
-              <div className="h-4 w-24 bg-muted rounded animate-pulse" />
-              <div className="h-3 w-32 bg-muted rounded animate-pulse" />
-            </div>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    )
   }
 
   // Show login button if user is not authenticated

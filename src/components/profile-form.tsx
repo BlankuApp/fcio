@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { checkAuth } from "@/lib/auth/utils"
 import { getLanguageDisplayName, LANGUAGES, PROFICIENCY_LEVELS, type TargetLanguage } from "@/lib/constants/languages"
-import { createClient } from "@/lib/supabase/client"
+import { getCurrentUserProfile, updateUserProfile, createUserProfile } from "@/lib/user-profile/client-utils"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
@@ -22,7 +22,6 @@ export function ProfileForm() {
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
     const router = useRouter()
-    const supabase = createClient()
 
     useEffect(() => {
         const loadProfile = async () => {
@@ -34,16 +33,30 @@ export function ProfileForm() {
                 return
             }
 
-            const user = authStatus.user
-            setEmail(user.email || "")
-            setUsername(user.user_metadata?.username || "")
-            setMotherTongues(user.user_metadata?.mother_tongue || [])
-            setTargetLanguages(user.user_metadata?.target_languages || [])
+            try {
+                const profile = await getCurrentUserProfile()
+                if (profile) {
+                    setEmail(profile.email)
+                    setUsername(profile.username)
+                    setMotherTongues(profile.mother_tongues)
+                    setTargetLanguages(profile.target_languages)
+                } else {
+                    // Profile doesn't exist yet, use basic auth info
+                    setEmail(authStatus.user.email || "")
+                    setUsername("")
+                    setMotherTongues([])
+                    setTargetLanguages([])
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error)
+                setError('Failed to load profile')
+            }
+            
             setLoading(false)
         }
 
         loadProfile()
-    }, [router, supabase])
+    }, [router])
 
     const toggleLanguage = (languageCode: string) => {
         setMotherTongues(prev => {
@@ -102,23 +115,40 @@ export function ProfileForm() {
                 }
             }
 
-            // Update user metadata
-            const { error: updateError } = await supabase.auth.updateUser({
-                data: {
-                    username: username,
-                    mother_tongue: motherTongues,
-                    target_languages: targetLanguages,
-                }
-            })
-
-            if (updateError) {
-                setError(updateError.message)
-            } else {
-                setSuccess("Profile updated successfully!")
-                setTimeout(() => setSuccess(""), 3000)
+            // Get current user ID
+            const authStatus = await checkAuth()
+            if (!authStatus.isAuthenticated || !authStatus.user) {
+                setError("Authentication required")
+                setSaving(false)
+                return
             }
+
+            // Try to update existing profile, or create new one if it doesn't exist
+            try {
+                await updateUserProfile(authStatus.user.id, {
+                    username: username,
+                    mother_tongues: motherTongues,
+                    target_languages: targetLanguages,
+                })
+            } catch (updateError) {
+                // If update fails, try to create a new profile
+                try {
+                    await createUserProfile({
+                        id: authStatus.user.id,
+                        email: authStatus.user.email || '',
+                        username: username,
+                        mother_tongues: motherTongues,
+                        target_languages: targetLanguages,
+                    })
+                } catch (createError) {
+                    throw createError
+                }
+            }
+
+            setSuccess("Profile updated successfully!")
+            setTimeout(() => setSuccess(""), 3000)
         } catch (err) {
-            setError("An unexpected error occurred")
+            setError(err instanceof Error ? err.message : "An unexpected error occurred")
             console.error(err)
         } finally {
             setSaving(false)

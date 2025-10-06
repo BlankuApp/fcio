@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
-import { getCurrentUser, isAdmin } from '@/lib/auth/server-utils'
+import { getCurrentUser } from '@/lib/auth/server-utils'
+import { requireAdmin } from '@/lib/user-profile/server-utils'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Users, BookOpen, Settings, BarChart, Shield } from 'lucide-react'
@@ -7,13 +8,15 @@ import { Users, BookOpen, Settings, BarChart, Shield } from 'lucide-react'
 export default async function AdminDashboardPage() {
     // Check if user is authenticated and is admin
     const user = await getCurrentUser()
-    const adminStatus = await isAdmin()
 
     if (!user) {
         redirect('/') // Redirect to home if not authenticated
     }
 
-    if (!adminStatus) {
+    try {
+        // This will throw an error if user is not admin
+        await requireAdmin()
+    } catch (error) {
         redirect('/') // Redirect to home if not admin
     }
 

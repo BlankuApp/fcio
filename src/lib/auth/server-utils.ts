@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserProfile } from "@/lib/user-profile/server-utils"
 
 /**
  * SERVER-SIDE ONLY: Check if user is authenticated
@@ -53,8 +54,8 @@ export async function getCurrentUser() {
  * Use this in Server Components, API routes, and Server Actions
  */
 export async function isAdmin() {
-    const user = await getCurrentUser()
-    return user?.user_metadata?.is_admin === true
+    const profile = await getCurrentUserProfile()
+    return profile?.is_admin === true
 }
 
 /**
@@ -62,15 +63,15 @@ export async function isAdmin() {
  * Use this in Server Components or API routes to protect admin-only content
  */
 export async function requireAdmin() {
-    const user = await getCurrentUser()
+    const profile = await getCurrentUserProfile()
 
-    if (!user) {
+    if (!profile) {
         throw new Error('Authentication required')
     }
 
-    if (user.user_metadata?.is_admin !== true) {
+    if (!profile.is_admin) {
         throw new Error('Admin access required')
     }
 
-    return user
+    return profile
 }

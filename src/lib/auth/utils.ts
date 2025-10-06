@@ -1,5 +1,6 @@
 import type { TargetLanguage } from "@/lib/constants/languages"
 import { createClient } from "@/lib/supabase/client"
+import { createUserProfile, getCurrentUserProfile } from "@/lib/user-profile/client-utils"
 
 /**
  * CLIENT-SIDE ONLY: Check if user is authenticated by checking Supabase session
@@ -7,6 +8,7 @@ import { createClient } from "@/lib/supabase/client"
  * For Server Components, use checkAuth from @/lib/auth/server-utils instead
  */
 export async function checkAuth() {
+    console.log('checkAuth: Checking authentication status')
     const supabase = createClient()
 
     try {
@@ -59,12 +61,16 @@ export async function getCurrentUser() {
  * Credentials are automatically saved to cookies by Supabase
  */
 export async function signIn(email: string, password: string) {
+    console.log('signIn: Starting sign in process')
     const supabase = createClient()
 
+    console.log('signIn: Calling signInWithPassword...')
     const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
     })
+
+    console.log('signIn: Result received:', { success: !error, error: error?.message })
 
     if (error) {
         return { success: false, error: error.message }
@@ -75,7 +81,7 @@ export async function signIn(email: string, password: string) {
 
 /**
  * Sign up with email and password
- * Credentials are automatically saved to cookies by Supabase
+ * Creates user in auth.users and corresponding profile in user_profiles table
  */
 export async function signUp(
     email: string,
@@ -86,23 +92,34 @@ export async function signUp(
 ) {
     const supabase = createClient()
 
-    const { data, error } = await supabase.auth.signUp({
+    // First, create the auth user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-            data: {
-                username: username,
-                mother_tongue: Array.isArray(motherTongues) ? motherTongues : motherTongues ? [motherTongues] : [],
-                target_languages: targetLanguages || [],
-            },
-        },
     })
 
-    if (error) {
-        return { success: false, error: error.message }
+    if (authError) {
+        return { success: false, error: authError.message }
     }
 
-    return { success: true, data }
+    // If user was created successfully, create the profile
+    if (authData.user) {
+        try {
+            await createUserProfile({
+                id: authData.user.id,
+                email: email,
+                username: username || '',
+                mother_tongues: Array.isArray(motherTongues) ? motherTongues : motherTongues ? [motherTongues] : [],
+                target_languages: targetLanguages || [],
+            })
+        } catch (profileError) {
+            console.error('Failed to create user profile:', profileError)
+            // Note: The auth user was already created, so we don't return an error here
+            // The profile can be created later if needed
+        }
+    }
+
+    return { success: true, data: authData }
 }
 
 /**
@@ -124,27 +141,27 @@ export async function signOut() {
 /** 
  * CLIENT-SIDE ONLY: Check if current user is an admin
  * Use this in Client Components (components with "use client" directive)
- * For Server Components, use isAdmin from @/lib/auth/server-utils instead
+ * For Server Components, use isAdmin from @/lib/user-profile/server-utils instead
  */
 export async function isAdmin() {
-    const user = await getCurrentUser()
-    return user?.user_metadata?.is_admin === true
+    const profile = await getCurrentUserProfile()
+    return profile?.is_admin === true
 }
 
 /**
  * Require admin access - throws error if not admin
- * Use this in Server Components or API routes to protect admin-only content
+ * Use this in Client Components to protect admin-only content
  */
 export async function requireAdmin() {
-    const user = await getCurrentUser()
+    const profile = await getCurrentUserProfile()
 
-    if (!user) {
+    if (!profile) {
         throw new Error('Authentication required')
     }
 
-    if (user.user_metadata?.is_admin !== true) {
+    if (!profile.is_admin) {
         throw new Error('Admin access required')
     }
 
-    return user
+    return profile
 }

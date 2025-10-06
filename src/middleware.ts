@@ -41,10 +41,21 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/', request.url))
         }
 
-        // Check if user is admin
-        const isAdmin = user.user_metadata?.is_admin === true
-        if (!isAdmin) {
-            // Not admin - redirect to home
+        // Check if user is admin by querying the profile table
+        try {
+            const { data: profile, error } = await supabase
+                .from('user_profiles')
+                .select('is_admin')
+                .eq('id', user.id)
+                .single()
+
+            if (error || !profile?.is_admin) {
+                // Not admin or profile not found - redirect to home
+                return NextResponse.redirect(new URL('/', request.url))
+            }
+        } catch (error) {
+            // Error checking admin status - redirect to home
+            console.error('Error checking admin status in middleware:', error)
             return NextResponse.redirect(new URL('/', request.url))
         }
     }
