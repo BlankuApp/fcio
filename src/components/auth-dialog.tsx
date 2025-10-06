@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/select"
 import { signIn, signUp } from "@/lib/auth/utils"
 import { getLanguageDisplayName, LANGUAGES, PROFICIENCY_LEVELS, type TargetLanguage } from "@/lib/constants/languages"
+import { getCurrentUserProfile } from "@/lib/user-profile/client-utils"
+import { saveUserProfileToStorage } from "@/lib/user-profile/browser-storage"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -87,7 +89,19 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                 clearTimeout(timeoutId) // Clear timeout on successful response
                 
                 if (result.success) {
-                    console.log('AuthDialog: Login successful, closing dialog')
+                    console.log('AuthDialog: Login successful, fetching profile...')
+                    
+                    // Fetch and save user profile to localStorage
+                    try {
+                        const profile = await getCurrentUserProfile()
+                        if (profile) {
+                            saveUserProfileToStorage(profile)
+                            console.log('AuthDialog: Profile saved to localStorage')
+                        }
+                    } catch (error) {
+                        console.error('AuthDialog: Failed to fetch/save profile:', error)
+                    }
+                    
                     setSuccess(true)
                     onOpenChange(false)
                     router.refresh()

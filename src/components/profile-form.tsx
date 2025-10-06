@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { checkAuth } from "@/lib/auth/utils"
 import { getLanguageDisplayName, LANGUAGES, PROFICIENCY_LEVELS, type TargetLanguage } from "@/lib/constants/languages"
 import { getCurrentUserProfile, updateUserProfile, createUserProfile } from "@/lib/user-profile/client-utils"
+import { getUserProfileFromStorage } from "@/lib/user-profile/browser-storage"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
@@ -34,18 +35,28 @@ export function ProfileForm() {
             }
 
             try {
-                const profile = await getCurrentUserProfile()
-                if (profile) {
-                    setEmail(profile.email)
-                    setUsername(profile.username)
-                    setMotherTongues(profile.mother_tongues)
-                    setTargetLanguages(profile.target_languages)
+                // First try to load from localStorage
+                const storedProfile = getUserProfileFromStorage()
+                if (storedProfile) {
+                    setEmail(storedProfile.email)
+                    setUsername(storedProfile.username)
+                    setMotherTongues(storedProfile.mother_tongues)
+                    setTargetLanguages(storedProfile.target_languages)
                 } else {
-                    // Profile doesn't exist yet, use basic auth info
-                    setEmail(authStatus.user.email || "")
-                    setUsername("")
-                    setMotherTongues([])
-                    setTargetLanguages([])
+                    // If no profile in localStorage, try to get from Supabase
+                    const profile = await getCurrentUserProfile()
+                    if (profile) {
+                        setEmail(profile.email)
+                        setUsername(profile.username)
+                        setMotherTongues(profile.mother_tongues)
+                        setTargetLanguages(profile.target_languages)
+                    } else {
+                        // Profile doesn't exist yet, use basic auth info
+                        setEmail(authStatus.user.email || "")
+                        setUsername("")
+                        setMotherTongues([])
+                        setTargetLanguages([])
+                    }
                 }
             } catch (error) {
                 console.error('Error loading profile:', error)

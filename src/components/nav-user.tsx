@@ -34,6 +34,7 @@ import {
 import { checkAuth } from "@/lib/auth/utils"
 import { createClient } from "@/lib/supabase/client"
 import { getCurrentUserProfile } from "@/lib/user-profile/client-utils"
+import { getUserProfileFromStorage, saveUserProfileToStorage, removeUserProfileFromStorage } from "@/lib/user-profile/browser-storage"
 
 interface User {
   name: string
@@ -50,18 +51,23 @@ export function NavUser() {
 
   useEffect(() => {
     // Check for existing session on mount
-    const checkInitialSession = async () => {
+    const checkInitialSession = () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user) {
-          console.log('NavUser: Found existing session on mount:', session.user.email)
-          const fallbackUserData = {
-            name: session.user.email?.split('@')[0] || 'User',
-            email: session.user.email || '',
+        // Try to get profile from localStorage first (instant, synchronous)
+        const cachedProfile = getUserProfileFromStorage()
+        if (cachedProfile) {
+          console.log('NavUser: Using cached profile from localStorage (instant load)')
+          const userData = {
+            name: cachedProfile.username || cachedProfile.email?.split('@')[0] || 'User',
+            email: cachedProfile.email,
             avatar: '',
           }
-          setUser(fallbackUserData)
+          setUser(userData)
+          // Note: onAuthStateChange listener will verify the session in background
+          // and update the UI if the session is invalid or expired
         }
+        // If no cache, do nothing - onAuthStateChange will handle initial session check
+        // This avoids an unnecessary API call on every page load
       } catch (error) {
         console.error('NavUser: Error checking initial session:', error)
       }
@@ -110,6 +116,9 @@ export function NavUser() {
             }
             console.log('NavUser: Setting enhanced user data from profile:', userData)
             setUser(userData)
+            
+            // Save profile to localStorage for future use
+            saveUserProfileToStorage(profile)
           }
           // If profile is null (timeout or no profile), we keep the fallback data that's already set
         } catch (error) {
@@ -129,6 +138,7 @@ export function NavUser() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
+    removeUserProfileFromStorage() // Remove profile from localStorage
     setUser(null)
     router.push('/')
     router.refresh()

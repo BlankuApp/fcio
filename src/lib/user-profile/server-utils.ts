@@ -7,14 +7,44 @@ import type { CreateUserProfileData, UpdateUserProfileData, UserProfile } from "
 export async function createUserProfile(profileData: CreateUserProfileData) {
     const supabase = await createClient()
 
+    // Ensure mother_tongues is a proper array, not a stringified array
+    let motherTongues: string[] = []
+    const mtInput = profileData.mother_tongues
+    
+    if (Array.isArray(mtInput)) {
+        motherTongues = mtInput
+    } else if (typeof mtInput === 'string') {
+        try {
+            const parsed = JSON.parse(mtInput)
+            motherTongues = Array.isArray(parsed) ? parsed : [mtInput]
+        } catch {
+            motherTongues = [mtInput]
+        }
+    }
+
+    // Ensure target_languages is a proper array
+    let targetLanguages: any[] = []
+    const tlInput = profileData.target_languages
+    
+    if (Array.isArray(tlInput)) {
+        targetLanguages = tlInput
+    } else if (typeof tlInput === 'string') {
+        try {
+            const parsed = JSON.parse(tlInput)
+            targetLanguages = Array.isArray(parsed) ? parsed : []
+        } catch {
+            targetLanguages = []
+        }
+    }
+
     const { data, error } = await supabase
         .from('user_profiles')
         .insert({
             id: profileData.id,
             email: profileData.email,
             username: profileData.username,
-            mother_tongues: profileData.mother_tongues,
-            target_languages: profileData.target_languages,
+            mother_tongues: motherTongues,
+            target_languages: targetLanguages,
             is_admin: profileData.is_admin || false,
         })
         .select()
@@ -56,10 +86,48 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 export async function updateUserProfile(userId: string, updates: UpdateUserProfileData): Promise<UserProfile> {
     const supabase = await createClient()
 
+    // Ensure mother_tongues is a proper array if provided
+    const processedUpdates: any = { ...updates }
+    
+    if (updates.mother_tongues !== undefined) {
+        let motherTongues: string[] = []
+        const mtInput = updates.mother_tongues
+        
+        if (Array.isArray(mtInput)) {
+            motherTongues = mtInput
+        } else if (typeof mtInput === 'string') {
+            try {
+                const parsed = JSON.parse(mtInput)
+                motherTongues = Array.isArray(parsed) ? parsed : [mtInput]
+            } catch {
+                motherTongues = [mtInput]
+            }
+        }
+        processedUpdates.mother_tongues = motherTongues
+    }
+
+    // Ensure target_languages is a proper array if provided
+    if (updates.target_languages !== undefined) {
+        let targetLanguages: any[] = []
+        const tlInput = updates.target_languages
+        
+        if (Array.isArray(tlInput)) {
+            targetLanguages = tlInput
+        } else if (typeof tlInput === 'string') {
+            try {
+                const parsed = JSON.parse(tlInput)
+                targetLanguages = Array.isArray(parsed) ? parsed : []
+            } catch {
+                targetLanguages = []
+            }
+        }
+        processedUpdates.target_languages = targetLanguages
+    }
+
     const { data, error } = await supabase
         .from('user_profiles')
         .update({
-            ...updates,
+            ...processedUpdates,
             updated_at: new Date().toISOString(),
         })
         .eq('id', userId)
