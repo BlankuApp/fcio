@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import type { CreateUserProfileData, UpdateUserProfileData, UserProfile } from "@/lib/types/user-profile"
+import type { TargetLanguage } from "@/lib/constants/languages"
 
 /**
  * SERVER-SIDE: Create a new user profile in the database
@@ -23,7 +24,7 @@ export async function createUserProfile(profileData: CreateUserProfileData) {
     }
 
     // Ensure target_languages is a proper array
-    let targetLanguages: any[] = []
+    let targetLanguages: TargetLanguage[] = []
     const tlInput = profileData.target_languages
     
     if (Array.isArray(tlInput)) {
@@ -87,7 +88,7 @@ export async function updateUserProfile(userId: string, updates: UpdateUserProfi
     const supabase = await createClient()
 
     // Ensure mother_tongues is a proper array if provided
-    const processedUpdates: any = { ...updates }
+    const processedUpdates: Partial<UpdateUserProfileData> = { ...updates }
     
     if (updates.mother_tongues !== undefined) {
         let motherTongues: string[] = []
@@ -108,7 +109,7 @@ export async function updateUserProfile(userId: string, updates: UpdateUserProfi
 
     // Ensure target_languages is a proper array if provided
     if (updates.target_languages !== undefined) {
-        let targetLanguages: any[] = []
+        let targetLanguages: TargetLanguage[] = []
         const tlInput = updates.target_languages
         
         if (Array.isArray(tlInput)) {
