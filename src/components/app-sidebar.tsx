@@ -4,6 +4,7 @@ import {
   BotMessageSquare,
   LibraryBig,
   Shield,
+  TypeOutline
 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -54,6 +55,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         name: "Admin",
         url: "/admin",
         icon: Shield,
+      })
+      items.push({
+        name: "Add Word",
+        url: "/words",
+        icon: TypeOutline,
       })
     }
     return items
