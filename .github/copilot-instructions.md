@@ -1,98 +1,186 @@
 # AI FlashCards - Copilot Instructions
 
 ## Project Overview
-This is an AI-powered flashcard application built with Next.js 15, React 19, and Supabase. The app uses a sidebar-based layout with shadcn/ui components for the user interface.
+AI-powered flashcard application built with **Next.js 15** (App Router), **React 19**, **Supabase** (PostgreSQL + Auth), and **shadcn/ui**. Features sidebar navigation, multi-language support, and role-based admin access.
 
-## Architecture & Key Patterns
+## Critical Architecture Patterns
 
-### App Router Structure
-- Uses Next.js 15 App Router with the `src/app/` directory
-- Root layout (`src/app/layout.tsx`) implements a sidebar-based UI using `SidebarProvider` and `AppSidebar`
-- Dashboard page has its own nested layout pattern with breadcrumbs and header
+### 1. Client/Server Split Architecture
+**IMPORTANT**: This codebase uses a strict client/server separation pattern. Violating this causes runtime errors.
 
-### UI Component System
-- Built on **shadcn/ui** with "new-york" style variant
-- All UI components live in `src/components/ui/` 
-- Uses Radix UI primitives as the foundation (Avatar, Dropdown, Collapsible, etc.)
-- **Tailwind CSS** for styling with CSS variables enabled
-- Component composition follows the shadcn pattern: primitive + styling + behavior
+#### Supabase Client Pattern
+- **Client-side** (`"use client"` components): `import { createClient } from "@/lib/supabase/client"`
+- **Server-side** (Server Components, middleware): `import { createClient } from "@/lib/supabase/server"`
+  - Server client returns a Promise: `const supabase = await createClient()`
 
-### Styling Conventions
-- Uses `cn()` utility from `src/lib/utils.ts` for conditional class merging (clsx + tailwind-merge)
-- CSS variables defined in `src/app/globals.css` for theming
-- Geist font family (sans and mono variants) loaded via `next/font/google`
+#### Auth Utilities Pattern
+Two parallel implementations for authentication:
+- **Client**: `@/lib/auth/utils.ts` - for `"use client"` components
+- **Server**: `@/lib/auth/server-utils.ts` - for Server Components/API routes
+  ```ts
+  // Client component
+  import { checkAuth, getCurrentUser } from "@/lib/auth/utils"
+  
+  // Server component
+  import { checkAuth, getCurrentUser } from "@/lib/auth/server-utils"
+  ```
 
-### Supabase Integration
-- **Database**: All data is managed by Supabase (PostgreSQL-based)
-- **Authentication**: Cookie-based session management with JWT tokens
-- **Dual client pattern**: separate clients for browser (`client.ts`) and server (`server.ts`)
-  - Use `src/lib/supabase/client.ts` for client-side operations (browser)
-  - Use `src/lib/supabase/server.ts` for server-side operations (Server Components, API routes)
-- Server client uses Next.js cookies for session management
-- Environment variables: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- Database queries use Supabase's query builder (`.from()`, `.select()`, `.insert()`, etc.)
-- **Auth utilities** in `src/lib/auth/utils.ts` provide helper functions for authentication
-- **Middleware** (`src/middleware.ts`) automatically refreshes auth tokens on each request
+#### User Profile CRUD Pattern
+Same dual pattern in `@/lib/user-profile/`:
+- **Client**: `client-utils.ts` exports `createUserProfile`, `getUserProfile`, etc.
+- **Server**: `server-utils.ts` exports same functions (always `await` server client)
+- **Convenience**: `index.ts` exports with `Server` suffix: `createUserProfileServer`, `getUserProfileServer`
 
-### Component Patterns
-- Use `"use client"` directive for interactive components (sidebar, dropdowns, etc.)
-- Components accept props extending base component props: `React.ComponentProps<typeof BaseComponent>`
-- Icon imports from `lucide-react` library
-- Sidebar components use the custom `useSidebar()` hook for responsive behavior
+### 2. Database Schema (Supabase)
+Core table: `user_profiles`
+```typescript
+{
+  id: string              // matches auth.users.id
+  email: string
+  username: string
+  mother_tongues: string[]           // PostgreSQL array
+  target_languages: TargetLanguage[] // JSON array: [{languageCode, proficiency}]
+  is_admin: boolean
+  created_at: string
+  updated_at: string
+}
+```
+
+### 3. Authentication & Authorization Flow
+
+#### Middleware Protection (`src/middleware.ts`)
+- Runs on every request (excludes static assets)
+- Refreshes Supabase auth tokens automatically
+- **Admin route protection**: `/admin/*` routes redirect non-admin users to `/`
+- Admin status checked via `user_profiles.is_admin` column
+
+#### Admin Access Pattern
+```tsx
+// In Server Components (e.g., src/app/(admin)/admin/page.tsx)
+import { getCurrentUser } from '@/lib/auth/server-utils'
+import { requireAdmin } from '@/lib/user-profile/server-utils'
+
+const user = await getCurrentUser()
+if (!user) redirect('/')
+
+try {
+  await requireAdmin() // throws if not admin
+} catch {
+  redirect('/')
+}
+```
+
+#### Client-Side Admin UI
+```tsx
+// Example: src/components/app-sidebar.tsx
+const [isAdminUser, setIsAdminUser] = useState(false)
+
+useEffect(() => {
+  const checkAdminStatus = async () => {
+    const adminStatus = await isAdmin() // from @/lib/auth/utils
+    setIsAdminUser(adminStatus)
+  }
+  checkAdminStatus()
+}, [])
+```
+
+### 4. Route Organization
+```
+src/app/
+├── layout.tsx          # Root layout with SidebarProvider
+├── page.tsx            # Home page
+├── (admin)/            # Route group (doesn't affect URL)
+│   ├── admin/          # /admin - dashboard
+│   └── words/          # /words - add words
+└── profile/            # /profile - user settings
+```
+Route groups `(admin)` organize files without adding URL segments.
 
 ## Development Workflow
 
-### Scripts
-- `npm run dev` - Development server with Turbopack on port 3030
-- `npm run build` - Production build with Turbopack
-- `npm run lint` - ESLint checking
-
-### File Organization
+### Environment Setup
+Required `.env.local`:
 ```
-src/
-├── app/           # Next.js App Router pages
-│   └── profile/   # User profile/settings page
-├── components/    # React components
-│   ├── ui/        # shadcn/ui base components
-│   ├── auth-dialog.tsx      # Login/signup modal
-│   ├── profile-form.tsx     # User profile edit form
-│   └── nav-user.tsx         # User menu in sidebar
-├── hooks/         # Custom React hooks
-└── lib/           # Utilities and integrations
-    ├── auth/      # Authentication utilities
-    ├── constants/ # App constants (languages, etc.)
-    └── supabase/  # Database client setup
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-## Key Implementation Notes
+### Dev Commands (PowerShell)
+```powershell
+npm run dev    # Port 3030 (Turbopack enabled)
+npm run build  # Production build with Turbopack
+npm run lint   # ESLint check
+```
 
-- **Sidebar Layout**: The app uses a persistent sidebar via `SidebarProvider` that wraps all pages
-- **Component Props**: Follow the pattern of extending base component props and spreading them
-- **Styling**: Always use the `cn()` utility for combining Tailwind classes
-- **Database Access**: 
-  - Import from `@/lib/supabase/client` for client components
-  - Import from `@/lib/supabase/server` for server components and API routes
-  - Always await the server client: `const supabase = await createClient()`
-- **Authentication Flow**:
-  - Use `src/lib/auth/utils.ts` helper functions (`signIn`, `signUp`, `signOut`, `checkAuth`)
-  - Sessions are stored in cookies automatically by Supabase
-  - `NavUser` component shows login button when unauthenticated
-  - `AuthDialog` component handles login/signup forms
-  - Signup requires: email, password, username, and mother tongue selection
-  - User metadata includes `username` and `mother_tongue` fields
-  - Users can select multiple mother tongues (at least one required)
-  - Users must add at least one target language with proficiency level
-  - Target languages include language code and proficiency level (elementary, intermediate, upper intermediate, advanced, native)
-  - Target languages stored as array of `{languageCode, proficiency}` objects
-  - Middleware refreshes tokens on each request
-- **Language Support**:
-  - Languages dictionary in `src/lib/constants/languages.ts`
-  - Includes frequently used languages: English, Japanese, Persian, Arabic, Hindi, Myanmar, Spanish, French, German, Chinese, Korean, Portuguese, Russian, Italian, Turkish
-  - Each language has `code`, `name`, and `nativeName` properties
-  - Proficiency levels defined in `PROFICIENCY_LEVELS` constant
-  - Target languages stored as array of `{languageCode, proficiency}` objects
-  - Use `getLanguageByCode()` and `getLanguageDisplayName()` helper functions
-- **Icons**: Use lucide-react icons consistently throughout the app
-- **TypeScript**: Strict typing enabled with proper type imports from dependencies
+### Adding shadcn/ui Components
+```powershell
+npx shadcn@latest add <component-name>
+```
+Components install to `src/components/ui/` with "new-york" style preset.
 
-When creating new components, follow the established patterns in `src/components/app-sidebar.tsx` and `src/components/nav-user.tsx` for consistency.
+## Styling & UI Conventions
+
+### Tailwind + CSS Variables
+- Theme colors defined in `src/app/globals.css` using CSS custom properties
+- Always use `cn()` utility for conditional classes:
+  ```tsx
+  import { cn } from "@/lib/utils"
+  <div className={cn("base-class", condition && "conditional-class")} />
+  ```
+
+### Component Composition Pattern
+```tsx
+// Extend base component props
+interface MyComponentProps extends React.ComponentProps<typeof BaseComponent> {
+  customProp?: string
+}
+
+export function MyComponent({ customProp, ...props }: MyComponentProps) {
+  return <BaseComponent {...props} />
+}
+```
+
+### Icons
+Use **lucide-react** exclusively. Import specific icons:
+```tsx
+import { Shield, Users, Settings } from "lucide-react"
+```
+
+## Language Support System
+
+### Language Constants (`src/lib/constants/languages.ts`)
+```typescript
+export const LANGUAGES: Language[] = [
+  { code: "en", name: "English", nativeName: "English" },
+  { code: "ja", name: "Japanese", nativeName: "日本語" },
+  // ... 15 total languages
+]
+
+export const PROFICIENCY_LEVELS: ProficiencyLevel[] = [
+  { value: "elementary", label: "Elementary", description: "..." },
+  // ... 5 levels total
+]
+```
+
+### User Language Configuration
+- **Mother tongues**: Array of language codes (`["en", "fa"]`)
+- **Target languages**: Array of `{languageCode: string, proficiency: string}` objects
+- Helper functions: `getLanguageByCode()`, `getLanguageDisplayName()`
+
+## Common Pitfalls
+
+1. **Wrong Supabase client**: Using client in Server Component → "cookies() can only be used in Server Component"
+2. **Missing await on server client**: `createClient()` instead of `await createClient()`
+3. **Wrong auth utility**: Importing from `utils.ts` in Server Component → session errors
+4. **Array field handling**: `mother_tongues` and `target_languages` stored as PostgreSQL arrays/JSON - always validate array type before `.from().insert()`
+
+## Migration Utilities
+`src/lib/user-profile/migration-utils.ts` provides `migrateUserToProfile()` for moving auth metadata to `user_profiles` table (legacy support).
+
+---
+
+**Key Files Reference**:
+- Layout: `src/app/layout.tsx` (SidebarProvider wrapper)
+- Auth middleware: `src/middleware.ts` (admin protection)
+- Admin guard: `src/lib/user-profile/server-utils.ts` (`requireAdmin()`)
+- Type definitions: `src/lib/types/user-profile.ts`

@@ -36,8 +36,8 @@ export function AuthDialog({ open, onOpenChange, onLoginSuccess }: AuthDialogPro
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [username, setUsername] = useState("")
-    const [motherTongues, setMotherTongues] = useState<string[]>([])
-    const [targetLanguages, setTargetLanguages] = useState<TargetLanguage[]>([])
+    const [motherTongues, setMotherTongues] = useState<string[]>(["en"])
+    const [targetLanguages, setTargetLanguages] = useState<TargetLanguage[]>([{languageCode: "ja", proficiency: "intermediate"}])
     const [error, setError] = useState("")
     const [loading, setLoading] = useState(false)
     const [success, setSuccess] = useState(false)
@@ -160,8 +160,8 @@ export function AuthDialog({ open, onOpenChange, onLoginSuccess }: AuthDialogPro
         setEmail("")
         setPassword("")
         setUsername("")
-        setMotherTongues([])
-        setTargetLanguages([])
+        setMotherTongues(["en"])
+        setTargetLanguages([{languageCode: "ja", proficiency: "intermediate"}])
         setError("")
         setSuccess(false)
     }
@@ -173,7 +173,7 @@ export function AuthDialog({ open, onOpenChange, onLoginSuccess }: AuthDialogPro
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[550px] max-h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>
                         {mode === "login" ? "Welcome back" : "Create an account"}
@@ -185,7 +185,7 @@ export function AuthDialog({ open, onOpenChange, onLoginSuccess }: AuthDialogPro
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto flex-1 pr-2">
                     {mode === "signup" && (
                         <>
                             <div className="space-y-2">

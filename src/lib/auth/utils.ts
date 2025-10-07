@@ -88,6 +88,17 @@ export async function signUp(
     targetLanguages?: TargetLanguage[]
 ) {
     const supabase = createClient()
+    
+    // Check if the email is already registered
+    const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('email')
+        .eq('email', email)
+        .single()
+
+    if (existingProfile) {
+        return { success: false, error: 'Email is already registered. Please sign in instead.' }
+    }
 
     // First, create the auth user
     const { data: authData, error: authError } = await supabase.auth.signUp({

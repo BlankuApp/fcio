@@ -21,8 +21,8 @@ export function ProfileForm() {
     const [saving, setSaving] = useState(false)
     const [email, setEmail] = useState("")
     const [username, setUsername] = useState("")
-    const [motherTongues, setMotherTongues] = useState<string[]>([])
-    const [targetLanguages, setTargetLanguages] = useState<TargetLanguage[]>([])
+    const [motherTongues, setMotherTongues] = useState<string[]>(["en"])
+    const [targetLanguages, setTargetLanguages] = useState<TargetLanguage[]>([{languageCode: "ja", proficiency: "intermediate"}])
     const [prompts, setPrompts] = useState<DefaultPrompts>(getDefaultPrompts())
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
@@ -117,9 +117,13 @@ export function ProfileForm() {
         })
     }
 
-    const resetPromptsToDefault = () => {
-        setPrompts(getDefaultPrompts())
-        setSuccess("Prompts reset to default values")
+
+    const resetIndividualPrompt = (promptKey: keyof DefaultPrompts) => {
+        setPrompts(prev => ({
+            ...prev,
+            [promptKey]: getDefaultPrompts()[promptKey]
+        }))
+        setSuccess(`${promptKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} reset to default`)
         setTimeout(() => setSuccess(""), 3000)
     }
 
@@ -171,18 +175,6 @@ export function ProfileForm() {
                     prompts: prompts,
                 })
             } catch (updateError) {
-                // If update fails, try to create a new profile
-                // try {
-                //     await createUserProfile({
-                //         id: authStatus.user.id,
-                //         email: authStatus.user.email || '',
-                //         username: username,
-                //         mother_tongues: motherTongues,
-                //         target_languages: targetLanguages,
-                //     })
-                // } catch (createError) {
-                //     throw createError
-                // }
                 throw updateError
             }
 
@@ -359,27 +351,15 @@ export function ProfileForm() {
             {/* AI Prompts */}
             <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle>AI Prompts</CardTitle>
-                            <CardDescription>Customize how AI assists you in learning</CardDescription>
-                        </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={resetPromptsToDefault}
-                        >
-                            Reset to Default
-                        </Button>
-                    </div>
+                    <CardTitle>AI Prompts</CardTitle>
+                    <CardDescription>Customize how AI assists you in learning</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Accordion type="single" collapsible className="w-full">
                         {/* Flashcard Generation Prompt */}
                         <AccordionItem value="flashcard_generation">
                             <AccordionTrigger>
-                                <div className="flex flex-col items-start text-left">
+                                <div className="flex flex-col items-start text-left flex-1">
                                     <span className="font-semibold">Flashcard Generation</span>
                                     <span className="text-xs text-muted-foreground font-normal">
                                         How AI creates flashcards for vocabulary learning
@@ -387,6 +367,17 @@ export function ProfileForm() {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="space-y-3 pt-2">
+                                <div className="flex justify-end mb-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => resetIndividualPrompt('flashcard_generation')}
+                                        className="h-7 text-xs"
+                                    >
+                                        Reset to Default
+                                    </Button>
+                                </div>
                                 {prompts.flashcard_generation.map((message, index) => (
                                     <div key={index} className="space-y-2 border-l-2 border-primary/20 pl-4">
                                         <Label className="text-xs font-medium uppercase text-muted-foreground">
@@ -406,7 +397,7 @@ export function ProfileForm() {
                         {/* Word Explanation Prompt */}
                         <AccordionItem value="word_explanation">
                             <AccordionTrigger>
-                                <div className="flex flex-col items-start text-left">
+                                <div className="flex flex-col items-start text-left flex-1">
                                     <span className="font-semibold">Word Explanation</span>
                                     <span className="text-xs text-muted-foreground font-normal">
                                         How AI explains words and phrases
@@ -414,6 +405,17 @@ export function ProfileForm() {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="space-y-3 pt-2">
+                                <div className="flex justify-end mb-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => resetIndividualPrompt('word_explanation')}
+                                        className="h-7 text-xs"
+                                    >
+                                        Reset to Default
+                                    </Button>
+                                </div>
                                 {prompts.word_explanation.map((message, index) => (
                                     <div key={index} className="space-y-2 border-l-2 border-primary/20 pl-4">
                                         <Label className="text-xs font-medium uppercase text-muted-foreground">
@@ -433,7 +435,7 @@ export function ProfileForm() {
                         {/* Sentence Creation Prompt */}
                         <AccordionItem value="sentence_creation">
                             <AccordionTrigger>
-                                <div className="flex flex-col items-start text-left">
+                                <div className="flex flex-col items-start text-left flex-1">
                                     <span className="font-semibold">Sentence Creation</span>
                                     <span className="text-xs text-muted-foreground font-normal">
                                         How AI creates example sentences
@@ -441,6 +443,17 @@ export function ProfileForm() {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="space-y-3 pt-2">
+                                <div className="flex justify-end mb-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => resetIndividualPrompt('sentence_creation')}
+                                        className="h-7 text-xs"
+                                    >
+                                        Reset to Default
+                                    </Button>
+                                </div>
                                 {prompts.sentence_creation.map((message, index) => (
                                     <div key={index} className="space-y-2 border-l-2 border-primary/20 pl-4">
                                         <Label className="text-xs font-medium uppercase text-muted-foreground">
@@ -460,7 +473,7 @@ export function ProfileForm() {
                         {/* Translation Prompt */}
                         <AccordionItem value="translation">
                             <AccordionTrigger>
-                                <div className="flex flex-col items-start text-left">
+                                <div className="flex flex-col items-start text-left flex-1">
                                     <span className="font-semibold">Translation</span>
                                     <span className="text-xs text-muted-foreground font-normal">
                                         How AI translates text
@@ -468,6 +481,17 @@ export function ProfileForm() {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="space-y-3 pt-2">
+                                <div className="flex justify-end mb-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => resetIndividualPrompt('translation')}
+                                        className="h-7 text-xs"
+                                    >
+                                        Reset to Default
+                                    </Button>
+                                </div>
                                 {prompts.translation.map((message, index) => (
                                     <div key={index} className="space-y-2 border-l-2 border-primary/20 pl-4">
                                         <Label className="text-xs font-medium uppercase text-muted-foreground">
