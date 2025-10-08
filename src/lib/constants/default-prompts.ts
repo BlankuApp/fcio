@@ -20,74 +20,47 @@ export interface DefaultPrompts {
 export const DEFAULT_PROMPTS: DefaultPrompts = {
   raw_collocation_generation: [
     {
-      role: "system",
-      content: [
-        {
-          type: "input_text",
-          text: `List all the common and useful collocations of the given word that are used in daily conversations or ordinary writings. Avoid rare or archaic ones.
-
-STEP 1 — Detect POS Automatically
-* Detect only the lemma of '{{word}}'.
-    * Example: If input is running, lemma = run.
-    * Example: If input is beautiful, lemma = beautiful (no derived forms such as beauty or beautify).
-* Identify the most common parts of speeches that this lemma can serve as (e.g., noun, verb, adjective).
-* Do not generate or reference derived or inflected words (no prefixes/suffixes).
-* Work strictly with the canonical lemma, preserving its direct syntactic roles.
-
-STEP 2 — Generate Patterns (Conditional by POS)
-For each detected POS, follow the corresponding rules:
-
-If POS = NOUN:
-Include patterns:
-  - ADJ + NOUN (strong tea)
-  - VERB + NOUN (make progress)
-  - NOUN + PREP + NOUN (increase in demand)
-  - PREP + NOUN set phrases (at risk)
-Include idiomatic expressions if common.
-
-If POS = VERB:
-Include:
-  - ADV + VERB (strongly recommend)
-  - VERB + NOUN (raise funds)
-  - VERB + PREP + NOUN (apply for a job)
-  - VERB + PARTICLE phrasal (set up)
-Add alternations or idiomatic verb-preposition pairs if relevant.
-
-If POS = ADJECTIVE:
-Include:
-  - ADV + ADJ (highly effective)
-  - ADJ + NOUN (crucial decision)
-  - LINKING VERB + ADJ (seems unlikely)
-
-If POS = ADVERB:
-Include:
-  - VERB + ADV (react quickly)
-  - ADV + ADJ (remarkably accurate)
-  - Sentence-level adverbials (Frankly, I disagree).
-
-If POS = PHRASAL_VERB:
-Include:
-  - Common object patterns (carry out a task)
-  - Register and separability notes (set sth up / set up sth).
-
-STEP 3 -- Generate Collocations
-* For each pattern provide 4 to 6 common collocations with lemma. Avoid rare or archaic ones, and gather as many as possible.
-* Do not generate or reference derived or inflected words (no prefixes/suffixes).
-* Work strictly with the canonical lemma, preserving its direct syntactic roles.
-
-Output Format:
-* For each collocation, in parentheses indicate the difficulty level of each collocation in 5 levels: elementary, intermediate, upper-intermediate, advanced and native
-* Consider the collocation only and avoid extra explanations/translations/examples. report each collocation with bullet point.
-* Make sure you categorize the output by pattern.`,
-        },
-      ],
-    },
-    {
       role: "user",
       content: [
         {
           type: "input_text",
-          text: "The word is '{{word}}' in {{lang}} Language",
+          text: `Goal
+List common collocations for the WORD ({{word}}) in {{lang}}. Exclude rare/archaic items. Output JSON only.
+
+Strict Form
+Use the WORD ({{word}}) exactly as written.  No inflections,  no prefixes/suffixes,  no nominalizations/verbalisations,  no derivatives.
+
+Guidelines
+- Coverage: for each applicable pattern, return as many common collocations as possible, up to 10; prioritize frequency and contemporary usage.
+- Difficulty:
+  - elementary: very frequent, literal, everyday (A1–A2)
+  - intermediate: common conversational/written use; mild abstraction (B1)
+  - upper-intermediate: less frequent/structure-dependent; some nuance (B2)
+  - advanced: idiomatic/register-specific or governed patterns (C1)
+  - native: strongly idiomatic/discourse-bound; culturally fixed (C2)
+- No extras: no definitions, translations, or examples.
+- No duplicates across patterns.
+
+Patterns (use what fits the language; skip invalid ones)
+- with verbs
+- with nouns
+- with adjectives
+- with adverbs
+- in phrases / idioms
+- other pattern
+
+Output (JSON only)
+Keys = pattern names; values = lists of {"collocation": string, "difficulty": string}.
+
+Example
+{
+  "with verbs": [
+    {"collocation": "…", "difficulty": "upper-intermediate"}, ...
+  ],
+  "with adverbs": [
+    {"collocation": "…", "difficulty": "advanced"}, ...
+  ], ...
+}`,
         },
       ],
     },

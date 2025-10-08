@@ -17,526 +17,482 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 export function ProfileForm() {
-    const [loading, setLoading] = useState(true)
-    const [saving, setSaving] = useState(false)
-    const [email, setEmail] = useState("")
-    const [username, setUsername] = useState("")
-    const [motherTongues, setMotherTongues] = useState<string[]>(["en"])
-    const [targetLanguages, setTargetLanguages] = useState<TargetLanguage[]>([{languageCode: "ja", proficiency: "intermediate"}])
-    const [prompts, setPrompts] = useState<DefaultPrompts>(getDefaultPrompts())
-    const [error, setError] = useState("")
-    const [success, setSuccess] = useState("")
-    const router = useRouter()
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [motherTongues, setMotherTongues] = useState<string[]>(["en"]);
+  const [targetLanguages, setTargetLanguages] = useState<TargetLanguage[]>([
+    { languageCode: "ja", proficiency: "intermediate" },
+  ]);
+  const [prompts, setPrompts] = useState<DefaultPrompts>(getDefaultPrompts());
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const router = useRouter();
 
-    useEffect(() => {
-        const loadProfile = async () => {
-            setLoading(true)
-            const authStatus = await checkAuth()
+  useEffect(() => {
+    const loadProfile = async () => {
+      setLoading(true);
+      const authStatus = await checkAuth();
 
-            if (!authStatus.isAuthenticated || !authStatus.user) {
-                router.push('/')
-                return
-            }
+      if (!authStatus.isAuthenticated || !authStatus.user) {
+        router.push("/");
+        return;
+      }
 
-            try {
-                // First try to load from localStorage
-                const storedProfile = getUserProfileFromStorage()
-                if (storedProfile) {
-                    setEmail(storedProfile.email)
-                    setUsername(storedProfile.username)
-                    setMotherTongues(storedProfile.mother_tongues)
-                    setTargetLanguages(storedProfile.target_languages)
-                    setPrompts(storedProfile.prompts || getDefaultPrompts())
-                } else {
-                    // If no profile in localStorage, try to get from Supabase
-                    const profile = await getCurrentUserProfile()
-                    if (profile) {
-                        setEmail(profile.email)
-                        setUsername(profile.username)
-                        setMotherTongues(profile.mother_tongues)
-                        setTargetLanguages(profile.target_languages)
-                        setPrompts(profile.prompts || getDefaultPrompts())
-                    } else {
-                        // Profile doesn't exist yet, use basic auth info
-                        setEmail(authStatus.user.email || "")
-                        setUsername("")
-                        setMotherTongues([])
-                        setTargetLanguages([])
-                        setPrompts(getDefaultPrompts())
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading profile:', error)
-                setError('Failed to load profile')
-            }
+      try {
+        // First try to load from localStorage
+        const storedProfile = getUserProfileFromStorage();
+        if (storedProfile) {
+          setEmail(storedProfile.email);
+          setUsername(storedProfile.username);
+          setMotherTongues(storedProfile.mother_tongues);
+          setTargetLanguages(storedProfile.target_languages);
 
-            setLoading(false)
+          // Only use defaults - ignore old stored prompts to clean up legacy data
+          const defaultPrompts = getDefaultPrompts();
+          setPrompts(defaultPrompts);
+        } else {
+          // If no profile in localStorage, try to get from Supabase
+          const profile = await getCurrentUserProfile();
+          if (profile) {
+            setEmail(profile.email);
+            setUsername(profile.username);
+            setMotherTongues(profile.mother_tongues);
+            setTargetLanguages(profile.target_languages);
+
+            // Only use defaults - ignore old stored prompts to clean up legacy data
+            const defaultPrompts = getDefaultPrompts();
+            setPrompts(defaultPrompts);
+          } else {
+            // Profile doesn't exist yet, use basic auth info
+            setEmail(authStatus.user.email || "");
+            setUsername("");
+            setMotherTongues([]);
+            setTargetLanguages([]);
+            setPrompts(getDefaultPrompts());
+          }
         }
+      } catch (error) {
+        console.error("Error loading profile:", error);
+        setError("Failed to load profile");
+      }
 
-        loadProfile()
-    }, [router])
+      setLoading(false);
+    };
 
-    const toggleLanguage = (languageCode: string) => {
-        setMotherTongues(prev => {
-            if (prev.includes(languageCode)) {
-                return prev.filter(code => code !== languageCode)
-            } else {
-                return [...prev, languageCode]
-            }
-        })
-    }
+    loadProfile();
+  }, [router]);
 
-    const addTargetLanguage = () => {
-        setTargetLanguages(prev => [...prev, { languageCode: "", proficiency: "" }])
-    }
+  const toggleLanguage = (languageCode: string) => {
+    setMotherTongues((prev) => {
+      if (prev.includes(languageCode)) {
+        return prev.filter((code) => code !== languageCode);
+      } else {
+        return [...prev, languageCode];
+      }
+    });
+  };
 
-    const removeTargetLanguage = (index: number) => {
-        setTargetLanguages(prev => prev.filter((_, i) => i !== index))
-    }
+  const addTargetLanguage = () => {
+    setTargetLanguages((prev) => [
+      ...prev,
+      { languageCode: "", proficiency: "" },
+    ]);
+  };
 
-    const updateTargetLanguage = (index: number, field: keyof TargetLanguage, value: string) => {
-        setTargetLanguages(prev => {
-            const updated = [...prev]
-            updated[index] = { ...updated[index], [field]: value }
-            return updated
-        })
-    }
+  const removeTargetLanguage = (index: number) => {
+    setTargetLanguages((prev) => prev.filter((_, i) => i !== index));
+  };
 
-    const updatePromptMessage = (
-        promptKey: keyof DefaultPrompts,
-        messageIndex: number,
-        field: keyof PromptMessage,
-        value: string
-    ) => {
-        setPrompts(prev => {
-            const updated = { ...prev }
-            const messages = [...updated[promptKey]]
-            messages[messageIndex] = { ...messages[messageIndex], [field]: value }
-            updated[promptKey] = messages
-            return updated
-        })
-    }
+  const updateTargetLanguage = (
+    index: number,
+    field: keyof TargetLanguage,
+    value: string
+  ) => {
+    setTargetLanguages((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
 
+  const updatePromptMessage = (
+    promptKey: keyof DefaultPrompts,
+    messageIndex: number,
+    value: string
+  ) => {
+    setPrompts((prev) => {
+      const updated = { ...prev };
+      const messages = [...(updated[promptKey] || [])];
 
-    const resetIndividualPrompt = (promptKey: keyof DefaultPrompts) => {
-        setPrompts(prev => ({
-            ...prev,
-            [promptKey]: getDefaultPrompts()[promptKey]
-        }))
-        setSuccess(`${promptKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} reset to default`)
-        setTimeout(() => setSuccess(""), 3000)
-    }
+      // content is an array of objects with type and text
+      messages[messageIndex] = {
+        ...messages[messageIndex],
+        content: [{ type: "input_text", text: value }],
+      };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setError("")
-        setSuccess("")
-        setSaving(true)
+      updated[promptKey] = messages;
+      return updated;
+    });
+  };
 
-        try {
-            // Validate at least one mother tongue
-            if (motherTongues.length === 0) {
-                setError("Please select at least one mother tongue")
-                setSaving(false)
-                return
-            }
+  const resetIndividualPrompt = (promptKey: keyof DefaultPrompts) => {
+    setPrompts((prev) => ({
+      ...prev,
+      [promptKey]: getDefaultPrompts()[promptKey],
+    }));
+    setSuccess(
+      `${promptKey
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (l) => l.toUpperCase())} reset to default`
+    );
+    setTimeout(() => setSuccess(""), 3000);
+  };
 
-            // Validate at least one target language
-            if (targetLanguages.length === 0) {
-                setError("Please add at least one language you want to learn")
-                setSaving(false)
-                return
-            }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setSaving(true);
 
-            // Validate target languages are complete
-            for (let i = 0; i < targetLanguages.length; i++) {
-                const tl = targetLanguages[i]
-                if (!tl.languageCode || !tl.proficiency) {
-                    setError(`Please complete all fields for target language ${i + 1}`)
-                    setSaving(false)
-                    return
-                }
-            }
+    try {
+      // Validate at least one mother tongue
+      if (motherTongues.length === 0) {
+        setError("Please select at least one mother tongue");
+        setSaving(false);
+        return;
+      }
 
-            // Get current user ID
-            const authStatus = await checkAuth()
-            if (!authStatus.isAuthenticated || !authStatus.user) {
-                setError("Authentication required")
-                setSaving(false)
-                return
-            }
+      // Validate at least one target language
+      if (targetLanguages.length === 0) {
+        setError("Please add at least one language you want to learn");
+        setSaving(false);
+        return;
+      }
 
-            // Try to update existing profile, or create new one if it doesn't exist
-            try {
-                await updateUserProfile(authStatus.user.id, {
-                    username: username,
-                    mother_tongues: motherTongues,
-                    target_languages: targetLanguages,
-                    prompts: prompts,
-                })
-            } catch (updateError) {
-                throw updateError
-            }
-
-            setSuccess("Profile updated successfully!")
-            setTimeout(() => setSuccess(""), 3000)
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "An unexpected error occurred")
-            console.error(err)
-        } finally {
-            setSaving(false)
+      // Validate target languages are complete
+      for (let i = 0; i < targetLanguages.length; i++) {
+        const tl = targetLanguages[i];
+        if (!tl.languageCode || !tl.proficiency) {
+          setError(`Please complete all fields for target language ${i + 1}`);
+          setSaving(false);
+          return;
         }
-    }
+      }
 
-    if (loading) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Loading...</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center justify-center p-8">
-                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                    </div>
-                </CardContent>
-            </Card>
-        )
-    }
+      // Get current user ID
+      const authStatus = await checkAuth();
+      if (!authStatus.isAuthenticated || !authStatus.user) {
+        setError("Authentication required");
+        setSaving(false);
+        return;
+      }
 
+      // Try to update existing profile, or create new one if it doesn't exist
+      try {
+        await updateUserProfile(authStatus.user.id, {
+          username: username,
+          mother_tongues: motherTongues,
+          target_languages: targetLanguages,
+          prompts: prompts,
+        });
+      } catch (updateError) {
+        throw updateError;
+      }
+
+      setSuccess("Profile updated successfully!");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred"
+      );
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Account Information */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Account Information</CardTitle>
-                    <CardDescription>Your basic account details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            value={email}
-                            disabled
-                            className="bg-muted"
-                        />
-                        <p className="text-xs text-muted-foreground">Email cannot be changed</p>
-                    </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Loading...</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center p-8">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-                    <div className="space-y-2">
-                        <Label htmlFor="username">Username</Label>
-                        <Input
-                            id="username"
-                            type="text"
-                            placeholder="johndoe"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            required
-                        />
-                    </div>
-                </CardContent>
-            </Card>
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Account Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Account Information</CardTitle>
+          <CardDescription>Your basic account details</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              disabled
+              className="bg-muted"
+            />
+            <p className="text-xs text-muted-foreground">
+              Email cannot be changed
+            </p>
+          </div>
 
-            {/* Mother Tongues */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Mother Tongue(s)</CardTitle>
-                    <CardDescription>Languages you speak natively</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="border rounded-md p-4 max-h-[300px] overflow-y-auto space-y-3">
-                        {LANGUAGES.map((lang) => (
-                            <div key={lang.code} className="flex items-center space-x-2">
-                                <Checkbox
-                                    id={`profile-lang-${lang.code}`}
-                                    checked={motherTongues.includes(lang.code)}
-                                    onCheckedChange={() => toggleLanguage(lang.code)}
-                                />
-                                <label
-                                    htmlFor={`profile-lang-${lang.code}`}
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                >
-                                    {getLanguageDisplayName(lang)}
-                                </label>
-                            </div>
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              type="text"
+              placeholder="johndoe"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Mother Tongues */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Mother Tongue(s)</CardTitle>
+          <CardDescription>Languages you speak natively</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="border rounded-md p-4 max-h-[300px] overflow-y-auto space-y-3">
+            {LANGUAGES.map((lang) => (
+              <div key={lang.code} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`profile-lang-${lang.code}`}
+                  checked={motherTongues.includes(lang.code)}
+                  onCheckedChange={() => toggleLanguage(lang.code)}
+                />
+                <label
+                  htmlFor={`profile-lang-${lang.code}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  {getLanguageDisplayName(lang)}
+                </label>
+              </div>
+            ))}
+          </div>
+          {motherTongues.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Selected: {motherTongues.length} language
+              {motherTongues.length > 1 ? "s" : ""}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Target Languages */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Languages to Learn</CardTitle>
+              <CardDescription>
+                Languages you&apos;re currently studying
+              </CardDescription>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addTargetLanguage}
+            >
+              + Add Language
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {targetLanguages.length > 0 ? (
+            <div className="space-y-4">
+              {targetLanguages.map((tl, index) => (
+                <div
+                  key={index}
+                  className="space-y-2 pb-4 border-b last:border-b-0 last:pb-0"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">
+                      Language {index + 1}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeTargetLanguage(index)}
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      ×
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Select
+                      value={tl.languageCode}
+                      onValueChange={(value) =>
+                        updateTargetLanguage(index, "languageCode", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LANGUAGES.filter(
+                          (lang) => !motherTongues.includes(lang.code)
+                        ).map((lang) => (
+                          <SelectItem key={lang.code} value={lang.code}>
+                            {getLanguageDisplayName(lang)}
+                          </SelectItem>
                         ))}
-                    </div>
-                    {motherTongues.length > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                            Selected: {motherTongues.length} language{motherTongues.length > 1 ? 's' : ''}
-                        </p>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Target Languages */}
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle>Languages to Learn</CardTitle>
-                            <CardDescription>Languages you&apos;re currently studying</CardDescription>
-                        </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={addTargetLanguage}
-                        >
-                            + Add Language
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    {targetLanguages.length > 0 ? (
-                        <div className="space-y-4">
-                            {targetLanguages.map((tl, index) => (
-                                <div key={index} className="space-y-2 pb-4 border-b last:border-b-0 last:pb-0">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium">Language {index + 1}</span>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => removeTargetLanguage(index)}
-                                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                            ×
-                                        </Button>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <Select
-                                            value={tl.languageCode}
-                                            onValueChange={(value) => updateTargetLanguage(index, 'languageCode', value)}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select language" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {LANGUAGES.filter(lang => !motherTongues.includes(lang.code)).map((lang) => (
-                                                    <SelectItem key={lang.code} value={lang.code}>
-                                                        {getLanguageDisplayName(lang)}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <Select
-                                            value={tl.proficiency}
-                                            onValueChange={(value) => updateTargetLanguage(index, 'proficiency', value)}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select proficiency" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {PROFICIENCY_LEVELS.map((level) => (
-                                                    <SelectItem key={level.value} value={level.value}>
-                                                        {level.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-sm text-muted-foreground text-center py-8">
-                            No languages added yet. Click &ldquo;+ Add Language&rdquo; to get started.
-                        </p>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* AI Prompts */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>AI Prompts</CardTitle>
-                    <CardDescription>Customize how AI assists you in learning</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Accordion type="single" collapsible className="w-full">
-                        {/* Flashcard Generation Prompt */}
-                        <AccordionItem value="flashcard_generation">
-                            <AccordionTrigger>
-                                <div className="flex flex-col items-start text-left flex-1">
-                                    <span className="font-semibold">Flashcard Generation</span>
-                                    <span className="text-xs text-muted-foreground font-normal">
-                                        How AI creates flashcards for vocabulary learning
-                                    </span>
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="space-y-3 pt-2">
-                                <div className="flex justify-end mb-2">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => resetIndividualPrompt('flashcard_generation')}
-                                        className="h-7 text-xs"
-                                    >
-                                        Reset to Default
-                                    </Button>
-                                </div>
-                                {prompts.flashcard_generation.map((message, index) => (
-                                    <div key={index} className="space-y-2 border-l-2 border-primary/20 pl-4">
-                                        <Label className="text-xs font-medium uppercase text-muted-foreground">
-                                            {message.role}
-                                        </Label>
-                                        <Textarea
-                                            value={message.content}
-                                            onChange={(e) => updatePromptMessage('flashcard_generation', index, 'content', e.target.value)}
-                                            rows={3}
-                                            className="text-sm"
-                                        />
-                                    </div>
-                                ))}
-                            </AccordionContent>
-                        </AccordionItem>
-
-                        {/* Word Explanation Prompt */}
-                        <AccordionItem value="word_explanation">
-                            <AccordionTrigger>
-                                <div className="flex flex-col items-start text-left flex-1">
-                                    <span className="font-semibold">Word Explanation</span>
-                                    <span className="text-xs text-muted-foreground font-normal">
-                                        How AI explains words and phrases
-                                    </span>
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="space-y-3 pt-2">
-                                <div className="flex justify-end mb-2">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => resetIndividualPrompt('word_explanation')}
-                                        className="h-7 text-xs"
-                                    >
-                                        Reset to Default
-                                    </Button>
-                                </div>
-                                {prompts.word_explanation.map((message, index) => (
-                                    <div key={index} className="space-y-2 border-l-2 border-primary/20 pl-4">
-                                        <Label className="text-xs font-medium uppercase text-muted-foreground">
-                                            {message.role}
-                                        </Label>
-                                        <Textarea
-                                            value={message.content}
-                                            onChange={(e) => updatePromptMessage('word_explanation', index, 'content', e.target.value)}
-                                            rows={3}
-                                            className="text-sm"
-                                        />
-                                    </div>
-                                ))}
-                            </AccordionContent>
-                        </AccordionItem>
-
-                        {/* Sentence Creation Prompt */}
-                        <AccordionItem value="sentence_creation">
-                            <AccordionTrigger>
-                                <div className="flex flex-col items-start text-left flex-1">
-                                    <span className="font-semibold">Sentence Creation</span>
-                                    <span className="text-xs text-muted-foreground font-normal">
-                                        How AI creates example sentences
-                                    </span>
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="space-y-3 pt-2">
-                                <div className="flex justify-end mb-2">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => resetIndividualPrompt('sentence_creation')}
-                                        className="h-7 text-xs"
-                                    >
-                                        Reset to Default
-                                    </Button>
-                                </div>
-                                {prompts.sentence_creation.map((message, index) => (
-                                    <div key={index} className="space-y-2 border-l-2 border-primary/20 pl-4">
-                                        <Label className="text-xs font-medium uppercase text-muted-foreground">
-                                            {message.role}
-                                        </Label>
-                                        <Textarea
-                                            value={message.content}
-                                            onChange={(e) => updatePromptMessage('sentence_creation', index, 'content', e.target.value)}
-                                            rows={3}
-                                            className="text-sm"
-                                        />
-                                    </div>
-                                ))}
-                            </AccordionContent>
-                        </AccordionItem>
-
-                        {/* Translation Prompt */}
-                        <AccordionItem value="translation">
-                            <AccordionTrigger>
-                                <div className="flex flex-col items-start text-left flex-1">
-                                    <span className="font-semibold">Translation</span>
-                                    <span className="text-xs text-muted-foreground font-normal">
-                                        How AI translates text
-                                    </span>
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="space-y-3 pt-2">
-                                <div className="flex justify-end mb-2">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => resetIndividualPrompt('translation')}
-                                        className="h-7 text-xs"
-                                    >
-                                        Reset to Default
-                                    </Button>
-                                </div>
-                                {prompts.translation.map((message, index) => (
-                                    <div key={index} className="space-y-2 border-l-2 border-primary/20 pl-4">
-                                        <Label className="text-xs font-medium uppercase text-muted-foreground">
-                                            {message.role}
-                                        </Label>
-                                        <Textarea
-                                            value={message.content}
-                                            onChange={(e) => updatePromptMessage('translation', index, 'content', e.target.value)}
-                                            rows={3}
-                                            className="text-sm"
-                                        />
-                                    </div>
-                                ))}
-                            </AccordionContent>
-                        </AccordionItem>
-                    </Accordion>
-                </CardContent>
-            </Card>
-
-            {/* Error/Success Messages */}
-            {error && (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
-                    {error}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={tl.proficiency}
+                      onValueChange={(value) =>
+                        updateTargetLanguage(index, "proficiency", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select proficiency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROFICIENCY_LEVELS.map((level) => (
+                          <SelectItem key={level.value} value={level.value}>
+                            {level.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-            )}
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No languages added yet. Click &ldquo;+ Add Language&rdquo; to get
+              started.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
-            {success && (
-                <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-md p-3">
-                    {success}
+      {/* AI Prompts */}
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Prompts</CardTitle>
+          <CardDescription>
+            Customize how AI assists you in learning
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Accordion type="single" collapsible className="w-full">
+            {/* raw collocation generation prompt */}
+            <AccordionItem value="raw_collocation_generation">
+              <AccordionTrigger>
+                <div className="flex flex-col items-start text-left flex-1">
+                  <span className="font-semibold">
+                    Raw Collocation Generation
+                  </span>
+                  <span className="text-xs text-muted-foreground font-normal">
+                    How AI generates collocations for vocabulary learning
+                    {prompts.raw_collocation_generation &&
+                      ` (${prompts.raw_collocation_generation.length} message${prompts.raw_collocation_generation.length !== 1
+                        ? "s"
+                        : ""
+                      })`}
+                  </span>
                 </div>
-            )}
-
-            {/* Submit Button */}
-            <div className="flex items-center justify-end gap-4">
-                <Button
+              </AccordionTrigger>
+              <AccordionContent className="space-y-3 pt-2">
+                <div className="flex justify-end mb-2">
+                  <Button
                     type="button"
                     variant="outline"
-                    onClick={() => router.push('/')}
-                >
-                    Cancel
-                </Button>
-                <Button type="submit" disabled={saving}>
-                    {saving ? "Saving..." : "Save Changes"}
-                </Button>
-            </div>
-        </form>
-    )
+                    size="sm"
+                    onClick={() =>
+                      resetIndividualPrompt("raw_collocation_generation")
+                    }
+                    className="h-7 text-xs"
+                  >
+                    Reset to Default
+                  </Button>
+                </div>
+                {prompts.raw_collocation_generation &&
+                  prompts.raw_collocation_generation.length > 0 ? (
+                  prompts.raw_collocation_generation.map((message, index) => (
+                    <div
+                      key={index}
+                      className="space-y-2 border-l-2 border-primary/20 pl-4"
+                    >
+                      <Label className="text-xs font-medium uppercase text-muted-foreground">
+                        {message.role}
+                      </Label>
+                      <Textarea
+                        value={message.content?.[0]?.text || ""}
+                        onChange={(e) =>
+                          updatePromptMessage(
+                            "raw_collocation_generation",
+                            index,
+                            e.target.value
+                          )
+                        }
+                        rows={10}
+                        className="text-sm font-mono"
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No prompt configuration available. Click &ldquo;Reset to
+                    Default&rdquo; to load defaults.
+                  </p>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </CardContent>
+      </Card>
+
+      {/* Error/Success Messages */}
+      {error && (
+        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-md p-3">
+          {success}
+        </div>
+      )}
+
+      {/* Submit Button */}
+      <div className="flex items-center justify-end gap-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.push("/")}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" disabled={saving}>
+          {saving ? "Saving..." : "Save Changes"}
+        </Button>
+      </div>
+    </form>
+  );
 }
