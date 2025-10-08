@@ -90,9 +90,9 @@ export function getPromptDefinition(
   // Replace placeholders with actual values
   if (placeholders) {
     return prompt.map((msg) => {
-      const clonedMsg = JSON.parse(JSON.stringify(msg)); // Deep clone
-      clonedMsg.content = clonedMsg.content.map((c) => {
-        const clonedContent = JSON.parse(JSON.stringify(c));
+      const clonedMsg: PromptMessage = JSON.parse(JSON.stringify(msg)); // Deep clone
+      clonedMsg.content = clonedMsg.content.map((c: { type: "input_text"; text: string }) => {
+        const clonedContent: { type: "input_text"; text: string } = JSON.parse(JSON.stringify(c));
         clonedContent.text = Object.entries(placeholders).reduce(
           (text, [placeholder, value]) =>
             text.replace(new RegExp(`{{${placeholder}}}`, "g"), value),
