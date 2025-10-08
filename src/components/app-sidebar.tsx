@@ -2,6 +2,7 @@
 
 import {
   BotMessageSquare,
+  FileJson,
   LibraryBig,
   Shield,
   TypeOutline
@@ -60,6 +61,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         name: "Add Word",
         url: "/words",
         icon: TypeOutline,
+      })
+      items.push({
+        name: "Batch Words",
+        url: "/words/batch",
+        icon: FileJson,
       })
     }
     return items

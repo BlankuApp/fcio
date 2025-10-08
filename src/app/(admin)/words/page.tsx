@@ -182,7 +182,7 @@ export default function AddWordPage() {
                 </div>
             </div>
 
-            <Card className="max-w-2xl">
+            <Card>
                 <CardHeader>
                     <CardTitle>Word Details</CardTitle>
                     <CardDescription>
