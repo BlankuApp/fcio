@@ -35,7 +35,12 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // Protect admin routes - require admin access
-    if (request.nextUrl.pathname.startsWith('/admin')) {
+    const adminRoutes = ['/admin', '/words']
+    const isAdminRoute = adminRoutes.some(route => 
+        request.nextUrl.pathname.startsWith(route)
+    )
+    
+    if (isAdminRoute) {
         if (!user) {
             // Not authenticated - redirect to home
             return NextResponse.redirect(new URL('/', request.url))
