@@ -10,6 +10,19 @@ import { Textarea } from "@/components/ui/textarea"
 import { Download, Upload, FileJson } from "lucide-react"
 import { useState } from "react"
 
+interface ParsedResult {
+    word: string
+    tokens: number
+    output: string
+}
+
+interface ParsedResultError {
+    error: string
+    raw: string
+}
+
+type ParsedResultType = ParsedResult | ParsedResultError
+
 export default function BatchWordsPage() {
     // JSONL Generation State
     const [wordList, setWordList] = useState("")
@@ -20,7 +33,7 @@ export default function BatchWordsPage() {
     // Result Upload State
     const [uploadedFile, setUploadedFile] = useState<File | null>(null)
     const [uploadedContent, setUploadedContent] = useState<string>("")
-    const [parsedResults, setParsedResults] = useState<any[]>([])
+    const [parsedResults, setParsedResults] = useState<ParsedResultType[]>([])
 
     // Generate preview
     const handleGeneratePreview = () => {
@@ -163,14 +176,18 @@ Example
             const parsed = lines.map((line, index) => {
                 try {
                     const raw_data = JSON.parse(line);
-                    const processed_data = {
+                    const processed_data: ParsedResult = {
                         word: raw_data.custom_id,
                         tokens: raw_data.response.body.usage.total_tokens,
                         output: raw_data.response.body.output[0].content[0].text
                     }
                     return processed_data
                 } catch (err) {
-                    return { error: `Line ${index + 1}: Invalid JSON`, raw: line }
+                    const error_message: ParsedResultError = {
+                        error: `Line ${index + 1}: Invalid JSON`,
+                        raw: line
+                    }
+                    return error_message
                 }
             })
 
@@ -320,14 +337,25 @@ Example
                                         <h3 className="text-lg font-semibold mb-2">Parsed Results</h3>
                                         {parsedResults.map((result, index) => (
                                             <Card key={index} className="mb-2">
-                                                <CardTitle className="text-lg font-light pl-4">
-                                                    {result.word} ({result.tokens} tokens)
-                                                </CardTitle>
-                                                <CardContent className="pt-4">
-                                                    <pre className="text-xs font-mono whitespace-pre-wrap break-words">
-                                                        {result.output}
-                                                    </pre>
-                                                </CardContent>
+                                                {"error" in result ? (
+                                                    <CardContent className="pt-4">
+                                                        <div className="text-red-500">
+                                                            <p className="font-semibold">{result.error}</p>
+                                                            <p className="text-xs font-mono mt-1">{result.raw}</p>
+                                                        </div>
+                                                    </CardContent>
+                                                ) : (
+                                                    <>
+                                                        <CardTitle className="text-lg font-light pl-4 pt-4">
+                                                            {result.word} ({result.tokens} tokens)
+                                                        </CardTitle>
+                                                        <CardContent className="pt-4">
+                                                            <pre className="text-xs font-mono whitespace-pre-wrap break-words">
+                                                                {result.output}
+                                                            </pre>
+                                                        </CardContent>
+                                                    </>
+                                                )}
                                             </Card>
                                         ))}
                                     </div>
