@@ -5,11 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Download, Upload, FileJson } from "lucide-react"
 import { useState } from "react"
+import { LANGUAGES, getLanguageDisplayName } from "@/lib/constants/languages"
 
 interface ParsedResult {
     word: string
@@ -28,7 +30,7 @@ type ParsedResultType = ParsedResult | ParsedResultError
 export default function BatchWordsPage() {
     // JSONL Generation State
     const [wordList, setWordList] = useState("")
-    const [targetLanguage, setTargetLanguage] = useState("English")
+    const [targetLanguage, setTargetLanguage] = useState("en") // Default to English code
     const [isGenerating, setIsGenerating] = useState(false)
     const [previewContent, setPreviewContent] = useState<string>("")
 
@@ -55,6 +57,9 @@ export default function BatchWordsPage() {
             // Create JSONL content following the Python implementation
             const jsonlContent = words
                 .map((word) => {
+                    // Get the selected language name
+                    const selectedLanguage = LANGUAGES.find(lang => lang.code === targetLanguage)
+                    const languageName = selectedLanguage ? selectedLanguage.name : targetLanguage
                     // Build the prompt structure
                     const prompt = {
                         input: [
@@ -63,20 +68,24 @@ export default function BatchWordsPage() {
                                 content: [
                                     {
                                         type: "input_text",
-                                        text: `Goal
-List common collocations for the word (${word}) in ${targetLanguage}. Exclude rare/archaic items. Output JSON only.
+                                        text: `Role
+You are a linguistic expert specializing in collocations and natural language usage in ${languageName}.
+
+Goal
+List common collocations for the word (${word}) in ${languageName}. Exclude rare/archaic items. Output JSON only.
 
 Strict Form
 Use the word (${word}) exactly as written.  No inflections,  no prefixes/suffixes,  no nominalizations/verbalisations,  no derivatives.
 
 Guidelines
 - Coverage: for each applicable pattern, return as many common collocations as possible, up to 10; prioritize frequency and contemporary usage.
-- Difficulty:
-  - elementary: very frequent, literal, everyday (A1–A2)
-  - intermediate: common conversational/written use; mild abstraction (B1)
-  - upper-intermediate: less frequent/structure-dependent; some nuance (B2)
-  - advanced: idiomatic/register-specific or governed patterns (C1)
-  - native: strongly idiomatic/discourse-bound; culturally fixed (C2)
+- Difficulty should be labeled as one of the following (strictly choose one, do not use other labels):
+  - beginner: ultra-common, literal, transparent; core daily use
+  - elementary: very frequent everyday; minimal figurative meaning
+  - intermediate: common use; mild abstraction; moderately fixed
+  - upper-intermediate: less frequent; pattern-governed; some nuance/register
+  - advanced: idiomatic or register-specific; low transparency; tightly fixed
+  - native: strongly idiomatic/culture-bound; discourse-dependent; rare outside context
 - No extras: no definitions, translations, or examples.
 - No duplicates across patterns.
 
@@ -114,7 +123,51 @@ Example
                         body: {
                             model: "gpt-4o-mini",
                             ...prompt,
-                            text: { format: { type: "json_object" } },
+                            text: {
+                                format: {
+                                    type: "json_schema",
+                                    name: "collocation_patterns",
+                                    strict: false,
+                                    schema: {
+                                        type: "object",
+                                        description: "Output mapping pattern names to lists of collocation objects with difficulty levels.",
+                                        patternProperties: {
+                                            ".*": {
+                                                type: "array",
+                                                items: {
+                                                    type: "object",
+                                                    properties: {
+                                                        collocation: {
+                                                            type: "string",
+                                                            description: "The collocation phrase or expression."
+                                                        },
+                                                        difficulty: {
+                                                            type: "string",
+                                                            description: "Difficulty level of the collocation.",
+                                                            enum: [
+                                                                "beginner",
+                                                                "elementary",
+                                                                "intermediate",
+                                                                "upper-intermediate",
+                                                                "advanced",
+                                                                "fluent"
+                                                            ]
+                                                        }
+                                                    },
+                                                    required: [
+                                                        "collocation",
+                                                        "difficulty"
+                                                    ],
+                                                    additionalProperties: false
+                                                }
+                                            }
+                                        },
+                                        additionalProperties: false,
+                                        properties: {},
+                                        required: []
+                                    }
+                                }
+                            },
                             reasoning: {},
                             tools: [],
                             temperature: 1.5,
@@ -271,12 +324,18 @@ Example
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="target-language">Target Language</Label>
-                                <Input
-                                    id="target-language"
-                                    value={targetLanguage}
-                                    onChange={(e) => setTargetLanguage(e.target.value)}
-                                    placeholder="e.g., English, Japanese, Persian"
-                                />
+                                <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+                                    <SelectTrigger id="target-language">
+                                        <SelectValue placeholder="Select a language" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {LANGUAGES.map((language) => (
+                                            <SelectItem key={language.code} value={language.code}>
+                                                {getLanguageDisplayName(language)}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="space-y-2">
