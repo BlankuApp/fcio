@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -14,6 +15,7 @@ interface ParsedResult {
     word: string
     tokens: number
     output: string
+    collocations: Record<string, Array<{ collocation: string, difficulty: string }>>
 }
 
 interface ParsedResultError {
@@ -34,6 +36,7 @@ export default function BatchWordsPage() {
     const [uploadedFile, setUploadedFile] = useState<File | null>(null)
     const [uploadedContent, setUploadedContent] = useState<string>("")
     const [parsedResults, setParsedResults] = useState<ParsedResultType[]>([])
+    const [selectedResults, setSelectedResults] = useState<Set<number>>(new Set())
 
     // Generate preview
     const handleGeneratePreview = () => {
@@ -160,6 +163,25 @@ Example
         }
     }
 
+    // Handle result selection
+    const handleResultSelection = (index: number, checked: boolean) => {
+        const newSelected = new Set(selectedResults)
+        if (checked) {
+            newSelected.add(index)
+        } else {
+            newSelected.delete(index)
+        }
+        setSelectedResults(newSelected)
+    }
+
+    // Handle post-processing of selected results
+    const handlePostProcess = () => {
+        const selectedData = Array.from(selectedResults).map(index => parsedResults[index])
+        console.log("Selected results for processing:", selectedData)
+        // TODO: Implement actual post-processing logic
+        alert(`Processing ${selectedData.length} selected results`)
+    }
+
     // Handle file upload
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -173,13 +195,15 @@ Example
 
             // Try to parse JSONL
             const lines = text.split("\n").filter((line) => line.trim())
-            const parsed = lines.map((line, index) => {
+            const parsed = lines.map((line: string, index: number) => {
                 try {
                     const raw_data = JSON.parse(line);
+                    const content = JSON.parse(raw_data.response.body.output[0].content[0].text);
                     const processed_data: ParsedResult = {
                         word: raw_data.custom_id,
                         tokens: raw_data.response.body.usage.total_tokens,
-                        output: raw_data.response.body.output[0].content[0].text
+                        output: raw_data.response.body.output[0].content[0].text,
+                        collocations: content // Add the parsed JSON object
                     }
                     return processed_data
                 } catch (err) {
@@ -192,6 +216,15 @@ Example
             })
 
             setParsedResults(parsed)
+
+            // Initialize selected results - select all valid results by default
+            const validIndices = new Set<number>()
+            parsed.forEach((result: ParsedResultType, index: number) => {
+                if (!("error" in result)) {
+                    validIndices.add(index)
+                }
+            })
+            setSelectedResults(validIndices)
         } catch (error) {
             console.error("Error reading file:", error)
             alert("Error reading file")
@@ -346,13 +379,46 @@ Example
                                                     </CardContent>
                                                 ) : (
                                                     <>
-                                                        <CardTitle className="text-lg font-light pl-4 pt-4">
-                                                            {result.word} ({result.tokens} tokens)
-                                                        </CardTitle>
-                                                        <CardContent className="pt-4">
-                                                            <pre className="text-xs font-mono whitespace-pre-wrap break-words">
-                                                                {result.output}
-                                                            </pre>
+                                                        <CardHeader className="pb-2">
+                                                            <div className="flex items-center space-x-2">
+                                                                <Checkbox
+                                                                    id={`result-${index}`}
+                                                                    checked={selectedResults.has(index)}
+                                                                    onCheckedChange={(checked) => handleResultSelection(index, checked as boolean)}
+                                                                />
+                                                                <label
+                                                                    htmlFor={`result-${index}`}
+                                                                    className="text-lg font-light cursor-pointer flex-1"
+                                                                >
+                                                                    {result.word} ({result.tokens} tokens)
+                                                                </label>
+                                                            </div>
+                                                        </CardHeader>
+                                                        <CardContent className="pt-0">
+                                                            <div className="space-y-4">
+                                                                {Object.entries(result.collocations).map(([pattern, collocations]) => (
+                                                                    <div key={pattern}>
+                                                                        <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                                                                            {pattern}
+                                                                        </h4>
+                                                                        <div className="flex flex-row flex-wrap">
+                                                                            {collocations.map((col, idx) => (
+                                                                                <div key={idx} className="flex items-center justify-between py-1 px-2 bg-muted/30 rounded text-sm">
+                                                                                    <span className="font-medium">{col.collocation}</span>
+                                                                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${col.difficulty === 'elementary' ? 'bg-green-100 text-green-800' :
+                                                                                        col.difficulty === 'intermediate' ? 'bg-blue-100 text-blue-800' :
+                                                                                            col.difficulty === 'upper-intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                                                                                                col.difficulty === 'advanced' ? 'bg-orange-100 text-orange-800' :
+                                                                                                    'bg-red-100 text-red-800'
+                                                                                        }`}>
+                                                                                        {col.difficulty}
+                                                                                    </span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
                                                         </CardContent>
                                                     </>
                                                 )}
@@ -360,8 +426,13 @@ Example
                                         ))}
                                     </div>
 
-                                    <Button variant="outline" className="w-full sm:w-auto" disabled>
-                                        Post-Process Results (Coming Soon)
+                                    <Button
+                                        variant="outline"
+                                        className="w-full sm:w-auto"
+                                        onClick={handlePostProcess}
+                                        disabled={selectedResults.size === 0}
+                                    >
+                                        Post-Process Results ({selectedResults.size} selected)
                                     </Button>
                                 </div>
                             )}
