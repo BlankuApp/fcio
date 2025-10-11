@@ -68,45 +68,53 @@ export default function BatchWordsPage() {
                                 content: [
                                     {
                                         type: "input_text",
-                                        text: `Role
-You are a linguistic expert specializing in collocations and natural language usage in ${languageName}.
+                                        text: `# Role 
+You are a linguistic expert specializing in collocations and natural language usage for language learning students. 
 
-Goal
-List common collocations for the word (${word}) in ${languageName}. Exclude rare/archaic items. Output JSON only.
+# Goal 
+List as many simple and common collocations as you can for the word (${word}) in ${languageName}. Exclude rare/archaic items.
 
-Strict Form
-Use the word (${word}) exactly as written.  No inflections,  no prefixes/suffixes,  no nominalizations/verbalisations,  no derivatives.
+# Strict Form 
+Use the given word exactly as written.  No inflections,  no prefixes/suffixes,  no nominalizations/verbalisations,  no derivatives. 
 
-Guidelines
-- Coverage: for each applicable pattern, return as many common collocations as possible, up to 10; prioritize frequency and contemporary usage.
-- Difficulty should be labeled as one of the following (strictly choose one, do not use other labels):
-  - beginner: ultra-common, literal, transparent; core daily use
-  - elementary: very frequent everyday; minimal figurative meaning
-  - intermediate: common use; mild abstraction; moderately fixed
-  - upper-intermediate: less frequent; pattern-governed; some nuance/register
-  - advanced: idiomatic or register-specific; low transparency; tightly fixed
-  - native: strongly idiomatic/culture-bound; discourse-dependent; rare outside context
-- No extras: no definitions, translations, or examples.
-- No duplicates across patterns.
+# Guidelines 
+- Coverage: for each pattern, make sure to return as many  beginner, elementary and common collocations as possible, maximum 12 collocations; prioritize beginner and elementary ones. 
+- Cover all the 4 patterns. Return empty if no collocation was possible for a pattern.
+- Each collocation should be unique in the message. Remove duplicates across patterns.
+- Make sure to return some response. Don't return empty output.
 
-Patterns (use what fits the language; skip invalid ones)
-- with verbs
-- with nouns
-- with adjectives
-- with adverbs
-- in phrases / idioms
-- other pattern
+# Phrase Pattern inventory (keys)
+1. Noun Phrase: Det/Num + Adj + N; N + Adj; N + N; Poss + N; N + PP/Case; etc.
+2. Verb Phrase: S + V + O; V + Adv; V + Obj + PP; Aux + V; (Serial V if typologically normal); etc.
+3. Adjective Phrase: Adv + Adj; Adj + PP; simple comparative/superlative; etc.
+4. Adverbial Phrase: Adv + Adv; Adv + PP; common time/place adverbials; etc.
 
-Output (JSON only)
-Keys = pattern names; values = lists of {"collocation": string, "difficulty": string}.
+# Difficulty Levels
+Difficulty should be labeled as one of the following based on the language learning student level: 
+  - beginner
+  - elementary
+  - intermediate 
+  - upper-intermediate
+  - advanced
+  - native
 
-Example
+## Example for the word (run) 
 {
-  "with verbs": [
-    {"collocation": "…", "difficulty": "upper-intermediate"}, ...
+  "Verb Phrase": [ 
+    {"collocation": "run a business", "difficulty": "upper-intermediate"}, ...
   ],
-  "with adverbs": [
-    {"collocation": "…", "difficulty": "advanced"}, ...
+  "Adverbial Phrase": [
+    {"collocation": "run quickly", "difficulty": "elementary"}, ...
+  ], ...
+}
+
+## Example for 資本 in Japanese 
+{
+  "Verb Phrase": [
+    {"collocation": "資本を投下する", "difficulty": "upper-intermediate"}, ...
+  ],
+  "Noun Phrase": [
+    {"collocation": "豊富な資本", "difficulty": "intermediate"}, ...
   ], ...
 }`,
                                     },
@@ -121,7 +129,7 @@ Example
                         method: "POST",
                         url: "/v1/responses",
                         body: {
-                            model: "gpt-4o-mini",
+                            model: "gpt-5",
                             ...prompt,
                             text: {
                                 format: {
@@ -130,20 +138,18 @@ Example
                                     strict: false,
                                     schema: {
                                         type: "object",
-                                        description: "Output mapping pattern names to lists of collocation objects with difficulty levels.",
                                         patternProperties: {
-                                            ".*": {
+                                            "^(Verb Phrase|Noun Phrase|Adverbial Phrase|Adjective Phrase)$": {
                                                 type: "array",
                                                 items: {
                                                     type: "object",
                                                     properties: {
                                                         collocation: {
                                                             type: "string",
-                                                            description: "The collocation phrase or expression."
+                                                            maxLength: 50
                                                         },
                                                         difficulty: {
                                                             type: "string",
-                                                            description: "Difficulty level of the collocation.",
                                                             enum: [
                                                                 "beginner",
                                                                 "elementary",
@@ -166,12 +172,16 @@ Example
                                         properties: {},
                                         required: []
                                     }
-                                }
+                                },
+                                verbosity: "high",
                             },
-                            reasoning: {},
+                            reasoning: { effort: "minimal", summary: null },
                             tools: [],
-                            temperature: 1.5,
                             store: false,
+                            include: [
+                                "reasoning.encrypted_content",
+                                "web_search_call.action.sources"
+                            ]
                         },
                     }
 
@@ -251,17 +261,17 @@ Example
             const parsed = lines.map((line: string, index: number) => {
                 try {
                     const raw_data = JSON.parse(line);
-                    const content = JSON.parse(raw_data.response.body.output[0].content[0].text);
+                    const content = JSON.parse(raw_data.response.body.output[1].content[0].text);
                     const processed_data: ParsedResult = {
                         word: raw_data.custom_id,
                         tokens: raw_data.response.body.usage.total_tokens,
-                        output: raw_data.response.body.output[0].content[0].text,
+                        output: raw_data.response.body.output[1].content[0].text,
                         collocations: content // Add the parsed JSON object
                     }
                     return processed_data
                 } catch (err) {
                     const error_message: ParsedResultError = {
-                        error: `Line ${index + 1}: Invalid JSON`,
+                        error: `Line ${index + 1}: Invalid JSON - ${err instanceof Error ? err.message : 'Unknown error'}`,
                         raw: line
                     }
                     return error_message
