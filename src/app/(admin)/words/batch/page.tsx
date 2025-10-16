@@ -241,6 +241,53 @@ Difficulty should be labeled as one of the following based on the language learn
         setSelectedResults(newSelected)
     }
 
+    // Selection helper functions
+    const handleSelectAll = () => {
+        const allValidIndices = new Set<number>()
+        parsedResults.forEach((result, index) => {
+            if (!("error" in result)) {
+                allValidIndices.add(index)
+            }
+        })
+        setSelectedResults(allValidIndices)
+    }
+
+    const handleDeselectAll = () => {
+        setSelectedResults(new Set())
+    }
+
+    const handleInvertSelection = () => {
+        const inverted = new Set<number>()
+        parsedResults.forEach((result, index) => {
+            if (!("error" in result)) {
+                if (!selectedResults.has(index)) {
+                    inverted.add(index)
+                }
+            }
+        })
+        setSelectedResults(inverted)
+    }
+
+    const handleSelectOnlyNewWords = () => {
+        const onlyNew = new Set<number>()
+        parsedResults.forEach((result, index) => {
+            if (!("error" in result) && !result.existingWord) {
+                onlyNew.add(index)
+            }
+        })
+        setSelectedResults(onlyNew)
+    }
+
+    const handleSelectOnlyExisting = () => {
+        const onlyExisting = new Set<number>()
+        parsedResults.forEach((result, index) => {
+            if (!("error" in result) && result.existingWord) {
+                onlyExisting.add(index)
+            }
+        })
+        setSelectedResults(onlyExisting)
+    }
+
     // Handle post-processing of selected results
     const handlePostProcess = async () => {
         setIsProcessing(true)
@@ -587,6 +634,56 @@ Difficulty should be labeled as one of the following based on the language learn
                                             </Card>
                                         ))}
                                     </div>
+
+                                    <Separator className="my-4" />
+
+                                    <div className="flex flex-col gap-3">
+                                        <p className="text-sm font-medium text-muted-foreground">Quick selection tools:</p>
+                                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleSelectAll}
+                                                className="text-xs"
+                                            >
+                                                Select All
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleDeselectAll}
+                                                className="text-xs"
+                                            >
+                                                Deselect All
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleInvertSelection}
+                                                className="text-xs"
+                                            >
+                                                Invert
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleSelectOnlyNewWords}
+                                                className="text-xs"
+                                            >
+                                                New Only
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleSelectOnlyExisting}
+                                                className="text-xs"
+                                            >
+                                                Existing Only
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="my-4" />
 
                                     <Button
                                         variant="outline"

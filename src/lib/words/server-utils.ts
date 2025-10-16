@@ -9,6 +9,7 @@ import {
     CreateWordInput,
     UpdateWordInput,
     ListWordsOptions,
+    CollocationsPattern,
 } from "@/lib/types/words"
 
 /**
@@ -185,9 +186,18 @@ export async function bulkCreateWords(inputs: CreateWordInput[]): Promise<Word[]
 
 /**
  * Upsert a word (insert or update if exists by lemma + lang)
+ * Merges new collocations with existing ones instead of replacing
  */
 export async function upsertWord(input: CreateWordInput): Promise<Word> {
     const supabase = await createClient()
+
+    // Check if word already exists
+    const existingWordsMap = await checkExistingWords([
+        { lemma: input.lemma, lang: input.lang }
+    ])
+
+    const key = `${input.lemma}|${input.lang}`
+    const existingWord = existingWordsMap.get(key)
 
     const { data, error } = await supabase
         .from("words")
@@ -195,7 +205,9 @@ export async function upsertWord(input: CreateWordInput): Promise<Word> {
             {
                 lemma: input.lemma,
                 lang: input.lang,
-                collocations: input.collocations,
+                collocations: existingWord
+                    ? mergeCollocations(existingWord.collocations, input.collocations)
+                    : input.collocations,
             },
             {
                 onConflict: "lemma,lang",
@@ -281,4 +293,112 @@ export async function getTotalWordCount(): Promise<number> {
 
     if (error) throw new Error(`Failed to count words: ${error.message}`)
     return count || 0
+}
+
+/**
+ * Check which words already exist in the database by (lemma, lang) pairs
+ * Returns map of "lemma|lang" -> Word for existing words
+ */
+export async function checkExistingWords(
+    words: Array<{ lemma: string; lang: string }>
+): Promise<Map<string, Word>> {
+    const supabase = await createClient()
+    const existingMap = new Map<string, Word>()
+
+    if (words.length === 0) return existingMap
+
+    // Get unique languages to query
+    const languages = Array.from(new Set(words.map(w => w.lang)))
+
+    // Query all words for the given languages
+    const { data, error } = await supabase
+        .from("words")
+        .select("*")
+        .in("lang", languages)
+
+    if (error) {
+        throw new Error(`Failed to check existing words: ${error.message}`)
+    }
+
+    if (data) {
+        data.forEach((word: Word) => {
+            const key = `${word.lemma}|${word.lang}`
+            existingMap.set(key, word)
+        })
+    }
+
+    return existingMap
+}
+
+/**
+ * Merge new collocations with existing ones, avoiding duplicates
+ * Returns merged collocations with all unique entries
+ */
+function mergeCollocations(
+    existing: CollocationsPattern,
+    newCollocations: CollocationsPattern
+): CollocationsPattern {
+    const merged: CollocationsPattern = { ...existing }
+
+    // Process each pattern in new collocations
+    Object.entries(newCollocations).forEach(([pattern, newItems]) => {
+        if (!merged[pattern]) {
+            // Pattern doesn't exist, add all new items
+            merged[pattern] = newItems as Array<{ collocation: string; difficulty: string }>
+        } else {
+            // Pattern exists, merge items and remove duplicates
+            const existingItems = merged[pattern] as Array<{ collocation: string; difficulty: string }>
+            const existingCollocationSet = new Set(
+                existingItems.map((item) => item.collocation.toLowerCase())
+            )
+
+            // Add only new unique collocations (case-insensitive check)
+            const uniqueNewItems = (newItems as Array<{ collocation: string; difficulty: string }>).filter(
+                (newItem) => !existingCollocationSet.has(newItem.collocation.toLowerCase())
+            )
+
+            // Combine: existing items + unique new items
+            merged[pattern] = [...existingItems, ...uniqueNewItems]
+        }
+    })
+
+    return merged
+}
+
+/**
+ * Bulk upsert words (insert or update if exists by lemma + lang)
+ * Use this for batch processing when duplicates might exist
+ * Merges new collocations with existing ones instead of replacing
+ */
+export async function bulkUpsertWords(inputs: CreateWordInput[]): Promise<Word[]> {
+    const supabase = await createClient()
+
+    // Get existing words to merge collocations
+    const existingWordsMap = await checkExistingWords(
+        inputs.map(input => ({ lemma: input.lemma, lang: input.lang }))
+    )
+
+    // Prepare upsert data with merged collocations
+    const upsertData = inputs.map(input => {
+        const key = `${input.lemma}|${input.lang}`
+        const existingWord = existingWordsMap.get(key)
+
+        return {
+            lemma: input.lemma,
+            lang: input.lang,
+            collocations: existingWord
+                ? mergeCollocations(existingWord.collocations, input.collocations)
+                : input.collocations,
+        }
+    })
+
+    const { data, error } = await supabase
+        .from("words")
+        .upsert(upsertData, {
+            onConflict: "lemma,lang",
+        })
+        .select()
+
+    if (error) throw new Error(`Failed to bulk upsert words: ${error.message}`)
+    return (data as Word[]) || []
 }
