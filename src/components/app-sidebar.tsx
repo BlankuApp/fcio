@@ -2,10 +2,12 @@
 
 import {
   BotMessageSquare,
-  FileJson,
   LibraryBig,
   Shield,
-  TypeOutline
+  TypeOutline,
+  UploadCloud,
+  DownloadCloud,
+  Plus
 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -21,11 +23,36 @@ import {
 } from "@/components/ui/sidebar"
 import { isAdmin } from "@/lib/auth/utils"
 
-const main_nav = [
+type NavItem = {
+  name: string
+  url: string
+  icon: typeof LibraryBig
+  items?: NavItem[]
+}
+
+const main_nav: NavItem[] = [
   {
     name: "Decks",
     url: "/decks",
     icon: LibraryBig,
+  },
+]
+
+const wordsSubNav: NavItem[] = [
+  {
+    name: "Add",
+    url: "/words/add",
+    icon: Plus,
+  },
+  {
+    name: "Generate JSONL",
+    url: "/words/generate",
+    icon: DownloadCloud,
+  },
+  {
+    name: "Upload Results",
+    url: "/words/upload",
+    icon: UploadCloud,
   },
 ]
 
@@ -38,7 +65,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       try {
         const adminStatus = await isAdmin()
         setIsAdminUser(adminStatus)
-      } catch (error) {
+      } catch {
         // Silently fail - user is not admin or not logged in
         setIsAdminUser(false)
       } finally {
@@ -58,14 +85,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: Shield,
       })
       items.push({
-        name: "Add Word",
-        url: "/words",
-        icon: TypeOutline,
-      })
-      items.push({
-        name: "Batch Words",
+        name: "Words",
         url: "/words/batch",
-        icon: FileJson,
+        icon: TypeOutline,
+        items: wordsSubNav,
       })
     }
     return items
