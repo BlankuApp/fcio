@@ -123,7 +123,6 @@ export async function updateWord(
         .from("words")
         .update({
             collocations: input.collocations,
-            updated_at: new Date().toISOString(),
         })
         .eq("id", id)
         .select()
@@ -197,7 +196,6 @@ export async function upsertWord(input: CreateWordInput): Promise<Word> {
                 lemma: input.lemma,
                 lang: input.lang,
                 collocations: input.collocations,
-                updated_at: new Date().toISOString(),
             },
             {
                 onConflict: "lemma,lang",

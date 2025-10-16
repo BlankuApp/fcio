@@ -12,12 +12,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { Download, Upload, FileJson } from "lucide-react"
 import { useState } from "react"
 import { LANGUAGES, getLanguageDisplayName } from "@/lib/constants/languages"
+import { bulkUpsertWords, checkExistingWords } from "@/lib/words/client-utils"
+import type { Word } from "@/lib/words"
 
 interface ParsedResult {
     word: string
     tokens: number
     output: string
     collocations: Record<string, Array<{ collocation: string, difficulty: string }>>
+    existingWord?: Word
 }
 
 interface ParsedResultError {
@@ -39,6 +42,7 @@ export default function BatchWordsPage() {
     const [uploadedContent, setUploadedContent] = useState<string>("")
     const [parsedResults, setParsedResults] = useState<ParsedResultType[]>([])
     const [selectedResults, setSelectedResults] = useState<Set<number>>(new Set())
+    const [isProcessing, setIsProcessing] = useState(false)
 
     // Generate preview
     const handleGeneratePreview = () => {
@@ -238,11 +242,45 @@ Difficulty should be labeled as one of the following based on the language learn
     }
 
     // Handle post-processing of selected results
-    const handlePostProcess = () => {
-        const selectedData = Array.from(selectedResults).map(index => parsedResults[index])
-        console.log("Selected results for processing:", selectedData)
-        // TODO: Implement actual post-processing logic
-        alert(`Processing ${selectedData.length} selected results`)
+    const handlePostProcess = async () => {
+        setIsProcessing(true)
+        try {
+            const selectedData = Array.from(selectedResults).map(
+                (index) => parsedResults[index] as ParsedResult
+            )
+
+            if (selectedData.length === 0) {
+                alert("No valid results selected")
+                return
+            }
+
+            // Transform selected results to CreateWordInput format
+            const wordsToInsert = selectedData.map((result) => ({
+                lemma: result.word,
+                lang: targetLanguage,
+                collocations: result.collocations,
+            }))
+
+            // Bulk upsert into database (inserts new, updates existing)
+            const processedWords = await bulkUpsertWords(wordsToInsert)
+
+            alert(
+                `Successfully processed ${processedWords.length} words (inserted/updated)!`
+            )
+
+            // Clear state after successful insertion
+            setSelectedResults(new Set())
+            setParsedResults([])
+            setUploadedFile(null)
+            setUploadedContent("")
+        } catch (error) {
+            console.error("Error adding words to database:", error)
+            alert(
+                `Error adding words: ${error instanceof Error ? error.message : "Unknown error"}`
+            )
+        } finally {
+            setIsProcessing(false)
+        }
     }
 
     // Handle file upload
@@ -278,11 +316,29 @@ Difficulty should be labeled as one of the following based on the language learn
                 }
             })
 
-            setParsedResults(parsed)
+            // Check for existing words in the database
+            const validResults = parsed.filter((r): r is ParsedResult => !("error" in r))
+            const existingWordsMap = await checkExistingWords(
+                validResults.map((r) => ({ lemma: r.word, lang: targetLanguage }))
+            )
+
+            // Attach existing word info to results
+            const enrichedParsed = parsed.map((result) => {
+                if (!("error" in result)) {
+                    const key = `${result.word}|${targetLanguage}`
+                    const existingWord = existingWordsMap.get(key)
+                    if (existingWord) {
+                        result.existingWord = existingWord
+                    }
+                }
+                return result
+            })
+
+            setParsedResults(enrichedParsed)
 
             // Initialize selected results - select all valid results by default
             const validIndices = new Set<number>()
-            parsed.forEach((result: ParsedResultType, index: number) => {
+            enrichedParsed.forEach((result: ParsedResultType, index: number) => {
                 if (!("error" in result)) {
                     validIndices.add(index)
                 }
@@ -461,32 +517,69 @@ Difficulty should be labeled as one of the following based on the language learn
                                                                 >
                                                                     {result.word} ({result.tokens} tokens)
                                                                 </label>
+                                                                {result.existingWord && (
+                                                                    <span className="px-2 py-1 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                                                                        ⚠️ Existing
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </CardHeader>
                                                         <CardContent className="pt-0">
-                                                            <div className="space-y-4">
-                                                                {Object.entries(result.collocations).map(([pattern, collocations]) => (
-                                                                    <div key={pattern}>
-                                                                        <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                                                                            {pattern}
-                                                                        </h4>
-                                                                        <div className="flex flex-row flex-wrap">
-                                                                            {collocations.map((col, idx) => (
-                                                                                <div key={idx} className="flex items-center justify-between py-1 px-2 bg-muted/30 rounded text-sm">
-                                                                                    <span className="font-medium">{col.collocation}</span>
-                                                                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${col.difficulty === 'elementary' ? 'bg-green-100 text-green-800' :
-                                                                                        col.difficulty === 'intermediate' ? 'bg-blue-100 text-blue-800' :
-                                                                                            col.difficulty === 'upper-intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                                                                                                col.difficulty === 'advanced' ? 'bg-orange-100 text-orange-800' :
-                                                                                                    'bg-red-100 text-red-800'
-                                                                                        }`}>
-                                                                                        {col.difficulty}
-                                                                                    </span>
-                                                                                </div>
-                                                                            ))}
+                                                            {/* Show existing word comparison if word already exists */}
+                                                            {result.existingWord && (
+                                                                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded">
+                                                                    <p className="text-sm font-semibold text-amber-900 mb-2">Existing word found - will update:</p>
+                                                                    <div className="space-y-2 text-sm">
+                                                                        <div>
+                                                                            <p className="text-xs text-amber-700 uppercase tracking-wide font-medium mb-1">Current collocations:</p>
+                                                                            <div className="space-y-2">
+                                                                                {Object.entries(result.existingWord.collocations).map(([pattern, collocations]) => (
+                                                                                    <div key={pattern}>
+                                                                                        <p className="text-xs font-semibold text-muted-foreground">{pattern}</p>
+                                                                                        <div className="flex flex-row flex-wrap gap-1">
+                                                                                            {(collocations as Array<{ collocation: string; difficulty: string }>).map((col, idx) => (
+                                                                                                <span key={idx} className="px-1.5 py-0.5 bg-amber-100 text-amber-900 rounded text-xs">
+                                                                                                    {col.collocation}
+                                                                                                </span>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
                                                                         </div>
                                                                     </div>
-                                                                ))}
+                                                                </div>
+                                                            )}
+
+                                                            {/* Show new collocations */}
+                                                            <div>
+                                                                <p className="text-sm font-semibold text-muted-foreground mb-2">
+                                                                    {result.existingWord ? "New collocations to merge:" : "Collocations:"}
+                                                                </p>
+                                                                <div className="space-y-4">
+                                                                    {Object.entries(result.collocations).map(([pattern, collocations]) => (
+                                                                        <div key={pattern}>
+                                                                            <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                                                                                {pattern}
+                                                                            </h4>
+                                                                            <div className="flex flex-row flex-wrap">
+                                                                                {collocations.map((col, idx) => (
+                                                                                    <div key={idx} className="flex items-center justify-between py-1 px-2 bg-muted/30 rounded text-sm">
+                                                                                        <span className="font-medium">{col.collocation}</span>
+                                                                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ml-2 ${col.difficulty === 'elementary' ? 'bg-green-100 text-green-800' :
+                                                                                            col.difficulty === 'intermediate' ? 'bg-blue-100 text-blue-800' :
+                                                                                                col.difficulty === 'upper-intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                                                                                                    col.difficulty === 'advanced' ? 'bg-orange-100 text-orange-800' :
+                                                                                                        'bg-red-100 text-red-800'
+                                                                                            }`}>
+                                                                                            {col.difficulty}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
                                                             </div>
                                                         </CardContent>
                                                     </>
@@ -499,9 +592,9 @@ Difficulty should be labeled as one of the following based on the language learn
                                         variant="outline"
                                         className="w-full sm:w-auto"
                                         onClick={handlePostProcess}
-                                        disabled={selectedResults.size === 0}
+                                        disabled={selectedResults.size === 0 || isProcessing}
                                     >
-                                        Post-Process Results ({selectedResults.size} selected)
+                                        {isProcessing ? "Adding to database..." : `Add to database (${selectedResults.size} selected)`}
                                     </Button>
                                 </div>
                             )}

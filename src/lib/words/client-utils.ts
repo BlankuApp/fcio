@@ -123,7 +123,6 @@ export async function updateWord(
         .from("words")
         .update({
             collocations: input.collocations,
-            updated_at: new Date().toISOString(),
         })
         .eq("id", id)
         .select()
@@ -283,4 +282,64 @@ export async function getTotalWordCount(): Promise<number> {
 
     if (error) throw new Error(`Failed to count words: ${error.message}`)
     return count || 0
+}
+
+/**
+ * Check which words already exist in the database by (lemma, lang) pairs
+ * Returns map of "lemma|lang" -> Word for existing words
+ */
+export async function checkExistingWords(
+    words: Array<{ lemma: string; lang: string }>
+): Promise<Map<string, Word>> {
+    const supabase = createClient()
+    const existingMap = new Map<string, Word>()
+
+    if (words.length === 0) return existingMap
+
+    // Get unique languages to query
+    const languages = Array.from(new Set(words.map(w => w.lang)))
+
+    // Query all words for the given languages
+    const { data, error } = await supabase
+        .from("words")
+        .select("*")
+        .in("lang", languages)
+
+    if (error) {
+        throw new Error(`Failed to check existing words: ${error.message}`)
+    }
+
+    if (data) {
+        data.forEach((word: Word) => {
+            const key = `${word.lemma}|${word.lang}`
+            existingMap.set(key, word)
+        })
+    }
+
+    return existingMap
+}
+
+/**
+ * Bulk upsert words (insert or update if exists by lemma + lang)
+ * Use this for batch processing when duplicates might exist
+ */
+export async function bulkUpsertWords(inputs: CreateWordInput[]): Promise<Word[]> {
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+        .from("words")
+        .upsert(
+            inputs.map((input) => ({
+                lemma: input.lemma,
+                lang: input.lang,
+                collocations: input.collocations,
+            })),
+            {
+                onConflict: "lemma,lang",
+            }
+        )
+        .select()
+
+    if (error) throw new Error(`Failed to bulk upsert words: ${error.message}`)
+    return (data as Word[]) || []
 }
