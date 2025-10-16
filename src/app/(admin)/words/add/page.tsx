@@ -171,7 +171,7 @@ export default function AddWordPage() {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 mt-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                        <TypeOutline className="h-6 w-6 text-primary" />
+                        <Plus className="h-6 w-6 text-primary" />
                     </div>
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">Add Word</h1>
@@ -183,12 +183,6 @@ export default function AddWordPage() {
             </div>
 
             <Card>
-                <CardHeader>
-                    <CardTitle>Word Details</CardTitle>
-                    <CardDescription>
-                        Fill in the word information and add collocations
-                    </CardDescription>
-                </CardHeader>
                 <CardContent>
                     {/* AI Generation Step */}
                     {!isGenerated ? (
