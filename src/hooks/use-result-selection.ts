@@ -15,26 +15,30 @@ export function useResultSelection() {
      * Toggle selection of a single result
      */
     const toggleResult = (index: number, checked: boolean) => {
-        const newSelected = new Set(selectedResults)
-        if (checked) {
-            newSelected.add(index)
-        } else {
-            newSelected.delete(index)
-        }
-        setSelectedResults(newSelected)
+        setSelectedResults((prev) => {
+            const newSelected = new Set(prev)
+            if (checked) {
+                newSelected.add(index)
+            } else {
+                newSelected.delete(index)
+            }
+            return newSelected
+        })
     }
 
     /**
      * Select all valid results (non-error results)
      */
     const selectAll = (results: ParsedResultType[]) => {
-        const allValidIndices = new Set<number>()
-        results.forEach((result, index) => {
-            if (isValidParsedResult(result)) {
-                allValidIndices.add(index)
-            }
+        setSelectedResults(() => {
+            const allValidIndices = new Set<number>()
+            results.forEach((result, index) => {
+                if (isValidParsedResult(result)) {
+                    allValidIndices.add(index)
+                }
+            })
+            return allValidIndices
         })
-        setSelectedResults(allValidIndices)
     }
 
     /**
@@ -48,41 +52,47 @@ export function useResultSelection() {
      * Invert the current selection
      */
     const invertSelection = (results: ParsedResultType[]) => {
-        const inverted = new Set<number>()
-        results.forEach((result, index) => {
-            if (isValidParsedResult(result)) {
-                if (!selectedResults.has(index)) {
-                    inverted.add(index)
+        setSelectedResults((prev) => {
+            const inverted = new Set<number>()
+            results.forEach((result, index) => {
+                if (isValidParsedResult(result)) {
+                    if (!prev.has(index)) {
+                        inverted.add(index)
+                    }
                 }
-            }
+            })
+            return inverted
         })
-        setSelectedResults(inverted)
     }
 
     /**
      * Select only new words (words without existingWord property)
      */
     const selectOnlyNewWords = (results: ParsedResultType[]) => {
-        const onlyNew = new Set<number>()
-        results.forEach((result, index) => {
-            if (isValidParsedResult(result) && !result.existingWord) {
-                onlyNew.add(index)
-            }
+        setSelectedResults(() => {
+            const onlyNew = new Set<number>()
+            results.forEach((result, index) => {
+                if (isValidParsedResult(result) && !result.existingWord) {
+                    onlyNew.add(index)
+                }
+            })
+            return onlyNew
         })
-        setSelectedResults(onlyNew)
     }
 
     /**
      * Select only existing words (words with existingWord property)
      */
     const selectOnlyExisting = (results: ParsedResultType[]) => {
-        const onlyExisting = new Set<number>()
-        results.forEach((result, index) => {
-            if (isValidParsedResult(result) && result.existingWord) {
-                onlyExisting.add(index)
-            }
+        setSelectedResults(() => {
+            const onlyExisting = new Set<number>()
+            results.forEach((result, index) => {
+                if (isValidParsedResult(result) && result.existingWord) {
+                    onlyExisting.add(index)
+                }
+            })
+            return onlyExisting
         })
-        setSelectedResults(onlyExisting)
     }
 
     /**

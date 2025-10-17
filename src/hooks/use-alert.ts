@@ -36,7 +36,7 @@ export function useAlert() {
     }
 
     const closeAlert = () => {
-        setAlert({ ...alert, isOpen: false })
+        setAlert(prev => ({ ...prev, isOpen: false }))
     }
 
     return {

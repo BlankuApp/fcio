@@ -223,7 +223,6 @@ export default function UploadWordsPage() {
                             <Separator className="my-4" />
 
                             <SelectionToolbar
-                                results={parsedResults}
                                 onSelectAll={() => selectAll(parsedResults)}
                                 onDeselectAll={deselectAll}
                                 onInvertSelection={() => invertSelection(parsedResults)}

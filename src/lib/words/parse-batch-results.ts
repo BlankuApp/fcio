@@ -11,22 +11,50 @@ export function parseBatchLine(
     line: string,
     lineNumber: number
 ): ParsedResult | ParsedResultError {
+    let rawData: Record<string, unknown>
     try {
-        const rawData = JSON.parse(line)
-        const content = JSON.parse(
-            rawData.response.body.output[1].content[0].text
-        ) as CollocationsPattern
+        rawData = JSON.parse(line) as Record<string, unknown>
+    } catch (err) {
+        const error: ParsedResultError = {
+            error: `Line ${lineNumber}: Invalid JSON syntax - ${err instanceof Error ? err.message : "Unknown error"}`,
+            raw: line,
+        }
+        return error
+    }
+
+    let content: CollocationsPattern
+    try {
+        const nestedText = (rawData?.response as Record<string, unknown>)?.body as Record<string, unknown>
+        const outputArray = nestedText?.output as Array<Record<string, unknown>>
+        const textContent = outputArray?.[1]?.content as Array<Record<string, unknown>>
+        const contentText = textContent?.[0]?.text as string
+
+        content = JSON.parse(contentText) as CollocationsPattern
+    } catch (err) {
+        const error: ParsedResultError = {
+            error: `Line ${lineNumber}: Invalid content JSON - ${err instanceof Error ? err.message : "Unknown error"}`,
+            raw: line,
+        }
+        return error
+    }
+
+    try {
+        const responseObj = rawData?.response as Record<string, unknown>
+        const bodyObj = responseObj?.body as Record<string, unknown>
+        const usageObj = bodyObj?.usage as Record<string, unknown>
+        const outputArray = bodyObj?.output as Array<Record<string, unknown>>
+        const contentArray = outputArray?.[1]?.content as Array<Record<string, unknown>>
 
         const result: ParsedResult = {
-            word: rawData.custom_id,
-            tokens: rawData.response.body.usage.total_tokens,
-            output: rawData.response.body.output[1].content[0].text,
+            word: rawData.custom_id as string,
+            tokens: usageObj?.total_tokens as number,
+            output: contentArray?.[0]?.text as string,
             collocations: content,
         }
         return result
     } catch (err) {
         const error: ParsedResultError = {
-            error: `Line ${lineNumber}: Invalid JSON - ${err instanceof Error ? err.message : "Unknown error"}`,
+            error: `Line ${lineNumber}: Unexpected object shape - ${err instanceof Error ? err.message : "Unknown error"}`,
             raw: line,
         }
         return error

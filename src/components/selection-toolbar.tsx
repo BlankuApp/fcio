@@ -1,10 +1,8 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import type { ParsedResultType } from "@/lib/types/words"
 
 interface SelectionToolbarProps {
-    results: ParsedResultType[]
     onSelectAll: () => void
     onDeselectAll: () => void
     onInvertSelection: () => void

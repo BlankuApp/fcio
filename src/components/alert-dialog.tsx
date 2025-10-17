@@ -51,7 +51,7 @@ export function AlertDialog({
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
             <DialogContent>
                 <DialogHeader className={`pb-3 -mx-6 -mt-6 px-6 pt-6 ${getHeaderColor()}`}>
                     <div className="flex items-center gap-3">
