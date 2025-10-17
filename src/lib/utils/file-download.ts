@@ -6,7 +6,7 @@
  * Downloads JSONL content as a file
  */
 export function downloadAsJsonl(content: string, filename: string): void {
-    const blob = new Blob([content], { type: "application/jsonl" })
+    const blob = new Blob([content], { type: "application/x-ndjson;charset=utf-8" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
 
