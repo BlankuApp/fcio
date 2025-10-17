@@ -18,17 +18,8 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Edit2, Plus, Trash2, X } from "lucide-react"
-import { LANGUAGES } from "@/lib/constants/languages"
+import { LANGUAGES, PROFICIENCY_LEVELS } from "@/lib/constants/languages"
 import type { Word, Collocation } from "@/lib/types/words"
-
-const DIFFICULTY_LEVELS = [
-    { value: "beginner", label: "Beginner" },
-    { value: "elementary", label: "Elementary" },
-    { value: "intermediate", label: "Intermediate" },
-    { value: "upper-intermediate", label: "Upper Intermediate" },
-    { value: "advanced", label: "Advanced" },
-    { value: "proficient", label: "Proficient" },
-]
 
 interface WordEditDialogProps {
     isOpen: boolean
@@ -168,7 +159,7 @@ export function WordEditDialog({
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {DIFFICULTY_LEVELS.map((level) => (
+                                                        {PROFICIENCY_LEVELS.map((level) => (
                                                             <SelectItem
                                                                 key={level.value}
                                                                 value={level.value}

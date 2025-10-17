@@ -120,10 +120,15 @@ export async function updateWord(
 ): Promise<Word> {
     const supabase = createClient()
 
-    const updateData: Record<string, string | CollocationsPattern> = {}
+    const updateData: UpdateWordInput = {}
     if (input.lemma !== undefined) updateData.lemma = input.lemma
     if (input.lang !== undefined) updateData.lang = input.lang
     if (input.collocations !== undefined) updateData.collocations = input.collocations
+
+    // Guard against empty update payloads
+    if (Object.keys(updateData).length === 0) {
+        throw new Error('No fields to update')
+    }
 
     const { data, error } = await supabase
         .from("words")

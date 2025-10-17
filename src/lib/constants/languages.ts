@@ -22,6 +22,11 @@ export interface TargetLanguage {
 
 export const PROFICIENCY_LEVELS: ProficiencyLevel[] = [
     {
+        value: "beginner",
+        label: "Beginner",
+        description: "Basic understanding of the language",
+    },
+    {
         value: "elementary",
         label: "Elementary",
         description: "Basic words and phrases",
@@ -32,7 +37,7 @@ export const PROFICIENCY_LEVELS: ProficiencyLevel[] = [
         description: "Can handle everyday situations",
     },
     {
-        value: "upper_intermediate",
+        value: "upper-intermediate",
         label: "Upper Intermediate",
         description: "Comfortable in most situations",
     },
@@ -42,9 +47,9 @@ export const PROFICIENCY_LEVELS: ProficiencyLevel[] = [
         description: "Fluent with minor gaps",
     },
     {
-        value: "native",
-        label: "Native",
-        description: "Native speaker level",
+        value: "fluent",
+        label: "Fluent",
+        description: "Near-native proficiency",
     },
 ]
 
