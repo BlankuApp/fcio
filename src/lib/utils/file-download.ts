@@ -16,7 +16,7 @@ export function downloadAsJsonl(content: string, filename: string): void {
         document.body.appendChild(link)
         link.click()
     } finally {
-        document.body.removeChild(link)
+        if (link.isConnected) document.body.removeChild(link)
         URL.revokeObjectURL(url)
     }
 }
