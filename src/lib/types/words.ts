@@ -49,3 +49,27 @@ export interface ListWordsOptions {
     limit?: number
     offset?: number
 }
+
+/**
+ * Parsed batch result from OpenAI JSONL file
+ */
+export interface ParsedResult {
+    word: string
+    tokens: number
+    output: string
+    collocations: CollocationsPattern
+    existingWord?: Word
+}
+
+/**
+ * Error result from parsing a batch line
+ */
+export interface ParsedResultError {
+    error: string
+    raw: string
+}
+
+/**
+ * Union type for parsed results
+ */
+export type ParsedResultType = ParsedResult | ParsedResultError
