@@ -120,11 +120,14 @@ export async function updateWord(
 ): Promise<Word> {
     const supabase = await createClient()
 
+    const updateData: Record<string, string | CollocationsPattern> = {}
+    if (input.lemma !== undefined) updateData.lemma = input.lemma
+    if (input.lang !== undefined) updateData.lang = input.lang
+    if (input.collocations !== undefined) updateData.collocations = input.collocations
+
     const { data, error } = await supabase
         .from("words")
-        .update({
-            collocations: input.collocations,
-        })
+        .update(updateData)
         .eq("id", id)
         .select()
         .single()

@@ -40,6 +40,11 @@ const main_nav: NavItem[] = [
 
 const wordsSubNav: NavItem[] = [
   {
+    name: "List",
+    url: "/words/list",
+    icon: LibraryBig,
+  },
+  {
     name: "Add",
     url: "/words/add",
     icon: Plus,

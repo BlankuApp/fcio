@@ -36,6 +36,8 @@ export interface CreateWordInput {
  * Input for updating a word
  */
 export interface UpdateWordInput {
+    lemma?: string
+    lang?: string
     collocations?: CollocationsPattern
 }
 
