@@ -184,3 +184,23 @@ export const PROFICIENCY_LEVELS: ProficiencyLevel[] = [
 - Auth middleware: `src/middleware.ts` (admin protection)
 - Admin guard: `src/lib/user-profile/server-utils.ts` (`requireAdmin()`)
 - Type definitions: `src/lib/types/user-profile.ts`
+
+## Database tables (very short)
+
+- `words`
+  - Stores unique words/lemmas per language. `collocations` holds generated collocation data as JSON. Unique on (lemma, lang).
+
+- `tags`
+  - Tag records for categorizing words. `normalized_name` is indexed for fast lookups. Tracks creator and timestamps.
+
+- `word_tags`
+  - Join table linking `words` and `tags`. Prevents duplicate word-tag pairs and cascades deletes from `words` or `tags`.
+
+- `tags_normalized_name_idx` (index)
+  - Unique index on `tags.normalized_name` for fast, case/format-normalized tag lookups.
+
+- `word_tags_word_id_idx` (index)
+  - Index on `word_tags.word_id` to speed queries that fetch tags for a word.
+
+- `word_tags_tag_id_idx` (index)
+  - Index on `word_tags.tag_id` to speed queries that fetch words for a tag.
