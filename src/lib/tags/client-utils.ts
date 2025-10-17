@@ -114,3 +114,83 @@ export async function deleteTag(id: string): Promise<void> {
         throw new Error(`Failed to delete tag: ${error.message}`)
     }
 }
+
+/**
+ * Add a tag to a word (creates entry in word_tags table)
+ */
+export async function addTagToWord(wordId: string, tagId: string): Promise<void> {
+    const supabase = createClient()
+
+    const { error } = await supabase
+        .from('word_tags')
+        .insert({
+            word_id: wordId,
+            tag_id: tagId,
+        })
+
+    if (error) {
+        throw new Error(`Failed to add tag to word: ${error.message}`)
+    }
+}
+
+/**
+ * Remove a tag from a word
+ */
+export async function removeTagFromWord(wordId: string, tagId: string): Promise<void> {
+    const supabase = createClient()
+
+    const { error } = await supabase
+        .from('word_tags')
+        .delete()
+        .eq('word_id', wordId)
+        .eq('tag_id', tagId)
+
+    if (error) {
+        throw new Error(`Failed to remove tag from word: ${error.message}`)
+    }
+}
+
+/**
+ * Get all tags for a word
+ */
+export async function getTagsForWord(wordId: string): Promise<Tag[]> {
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+        .from('word_tags')
+        .select('tags(*)')
+        .eq('word_id', wordId)
+
+    if (error) {
+        throw new Error(`Failed to get tags for word: ${error.message}`)
+    }
+
+    type WordTagRecord = { tags: Tag[] }
+    return (data as WordTagRecord[] ?? []).flatMap((record) => record.tags)
+}
+
+/**
+ * Bulk add tags to multiple words
+ */
+export async function bulkAddTagsToWords(
+    wordIds: string[],
+    tagIds: string[]
+): Promise<void> {
+    const supabase = createClient()
+
+    const insertData = wordIds.flatMap((wordId) =>
+        tagIds.map((tagId) => ({
+            word_id: wordId,
+            tag_id: tagId,
+        }))
+    )
+
+    const { error } = await supabase
+        .from('word_tags')
+        .insert(insertData)
+
+    if (error) {
+        throw new Error(`Failed to bulk add tags to words: ${error.message}`)
+    }
+}
+

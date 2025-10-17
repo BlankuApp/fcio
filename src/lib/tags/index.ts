@@ -6,6 +6,10 @@ export {
     listTags,
     updateTag,
     deleteTag,
+    addTagToWord,
+    removeTagFromWord,
+    getTagsForWord,
+    bulkAddTagsToWords,
 } from './client-utils'
 
 // Server-side utilities
@@ -20,3 +24,4 @@ export {
 
 // Types
 export type { Tag, CreateTagInput, UpdateTagInput, ListTagsOptions } from '@/lib/types/tags'
+
