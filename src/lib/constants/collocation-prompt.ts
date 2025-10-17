@@ -30,7 +30,7 @@ Difficulty should be labeled as one of the following based on the language learn
   - intermediate 
   - upper-intermediate
   - advanced
-  - native
+  - fluent
 
 ## Example for the word (run) 
 {
