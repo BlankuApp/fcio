@@ -7,7 +7,6 @@ import {
   TypeOutline,
   UploadCloud,
   DownloadCloud,
-  Plus
 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -43,11 +42,6 @@ const wordsSubNav: NavItem[] = [
     name: "List",
     url: "/words/list",
     icon: LibraryBig,
-  },
-  {
-    name: "Add",
-    url: "/words/add",
-    icon: Plus,
   },
   {
     name: "Generate JSONL",

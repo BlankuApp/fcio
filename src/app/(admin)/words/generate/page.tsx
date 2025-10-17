@@ -8,187 +8,80 @@ import { Textarea } from "@/components/ui/textarea"
 import { DownloadCloud } from "lucide-react"
 import { useState } from "react"
 import { LANGUAGES, getLanguageDisplayName } from "@/lib/constants/languages"
+import { generateJsonlContent } from "@/lib/ai/batch-request-builder"
+import { downloadAsJsonl, getJsonlLineCount } from "@/lib/utils/file-download"
 
 export default function GenerateWordsPage() {
     const [wordList, setWordList] = useState("")
     const [targetLanguage, setTargetLanguage] = useState("en")
     const [isGenerating, setIsGenerating] = useState(false)
     const [previewContent, setPreviewContent] = useState<string>("")
+    const [error, setError] = useState<string>("")
 
+    /**
+     * Validates and parses word list
+     */
+    const parseWords = (text: string): string[] => {
+        return text
+            .split("\n")
+            .map((w) => w.trim())
+            .filter((w) => w.length > 0)
+    }
+
+    /**
+     * Generates preview of JSONL content
+     */
     const handleGeneratePreview = () => {
         try {
-            const words = wordList
-                .split("\n")
-                .map((w) => w.trim())
-                .filter((w) => w.length > 0)
+            setError("")
+            const words = parseWords(wordList)
 
             if (words.length === 0) {
+                setError("Please enter at least one word")
                 setPreviewContent("")
                 return
             }
 
-            const jsonlContent = words
-                .map((word) => {
-                    const selectedLanguage = LANGUAGES.find(lang => lang.code === targetLanguage)
-                    const languageName = selectedLanguage ? selectedLanguage.name : targetLanguage
-
-                    const prompt = {
-                        input: [
-                            {
-                                role: "user",
-                                content: [
-                                    {
-                                        type: "input_text",
-                                        text: `# Role 
-You are a linguistic expert specializing in collocations and natural language usage for language learning students. 
-
-# Goal 
-List as many simple and common collocations as you can for the word (${word}) in ${languageName}. Exclude rare/archaic items.
-
-# Strict Form 
-Use the given word exactly as written.  No inflections,  no prefixes/suffixes,  no nominalizations/verbalisations,  no derivatives. 
-
-# Guidelines 
-- Coverage: for each pattern, make sure to return as many  beginner, elementary and common collocations as possible, maximum 12 collocations; prioritize beginner and elementary ones. 
-- Cover all the 4 patterns. Return empty if no collocation was possible for a pattern.
-- Each collocation should be unique in the message. Remove duplicates across patterns.
-- Make sure to return some response. Don't return empty output.
-
-# Phrase Pattern inventory (keys)
-1. Noun Phrase: Det/Num + Adj + N; N + Adj; N + N; Poss + N; N + PP/Case; etc.
-2. Verb Phrase: S + V + O; V + Adv; V + Obj + PP; Aux + V; (Serial V if typologically normal); etc.
-3. Adjective Phrase: Adv + Adj; Adj + PP; simple comparative/superlative; etc.
-4. Adverbial Phrase: Adv + Adv; Adv + PP; common time/place adverbials; etc.
-
-# Difficulty Levels
-Difficulty should be labeled as one of the following based on the language learning student level: 
-  - beginner
-  - elementary
-  - intermediate 
-  - upper-intermediate
-  - advanced
-  - native
-
-## Example for the word (run) 
-{
-  "Verb Phrase": [ 
-    {"collocation": "run a business", "difficulty": "upper-intermediate"}, ...
-  ],
-  "Adverbial Phrase": [
-    {"collocation": "run quickly", "difficulty": "elementary"}, ...
-  ], ...
-}
-
-## Example for 資本 in Japanese 
-{
-  "Verb Phrase": [
-    {"collocation": "資本を投下する", "difficulty": "upper-intermediate"}, ...
-  ],
-  "Noun Phrase": [
-    {"collocation": "豊富な資本", "difficulty": "intermediate"}, ...
-  ], ...
-}`,
-                                    },
-                                ],
-                            },
-                        ],
-                    }
-
-                    const request = {
-                        custom_id: word,
-                        method: "POST",
-                        url: "/v1/responses",
-                        body: {
-                            model: "gpt-5",
-                            ...prompt,
-                            text: {
-                                format: {
-                                    type: "json_schema",
-                                    name: "collocation_patterns",
-                                    strict: false,
-                                    schema: {
-                                        type: "object",
-                                        patternProperties: {
-                                            "^(Verb Phrase|Noun Phrase|Adverbial Phrase|Adjective Phrase)$": {
-                                                type: "array",
-                                                items: {
-                                                    type: "object",
-                                                    properties: {
-                                                        collocation: {
-                                                            type: "string",
-                                                            maxLength: 50
-                                                        },
-                                                        difficulty: {
-                                                            type: "string",
-                                                            enum: [
-                                                                "beginner",
-                                                                "elementary",
-                                                                "intermediate",
-                                                                "upper-intermediate",
-                                                                "advanced",
-                                                                "fluent"
-                                                            ]
-                                                        }
-                                                    },
-                                                    required: [
-                                                        "collocation",
-                                                        "difficulty"
-                                                    ],
-                                                    additionalProperties: false
-                                                }
-                                            }
-                                        },
-                                        additionalProperties: false,
-                                        properties: {},
-                                        required: []
-                                    }
-                                },
-                                verbosity: "high",
-                            },
-                            reasoning: { effort: "minimal", summary: null },
-                            tools: [],
-                            store: false,
-                            include: [
-                                "reasoning.encrypted_content",
-                                "web_search_call.action.sources"
-                            ]
-                        },
-                    }
-
-                    return JSON.stringify(request)
-                })
-                .join("\n")
-
-            setPreviewContent(jsonlContent)
-        } catch (error) {
-            console.error("Error generating preview:", error)
-            alert("Error generating preview")
-        }
-    }
-
-    const handleGenerateJsonl = () => {
-        setIsGenerating(true)
-        try {
-            if (!previewContent) {
-                alert("Please generate a preview first")
+            if (words.length > 100) {
+                setError("Maximum 100 words per batch. Please reduce your list.")
                 return
             }
 
-            const blob = new Blob([previewContent], { type: "application/jsonl" })
-            const url = URL.createObjectURL(blob)
-            const link = document.createElement("a")
-            link.href = url
-            link.download = `batch_words_${Date.now()}.jsonl`
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            URL.revokeObjectURL(url)
+            const selectedLanguage = LANGUAGES.find((lang) => lang.code === targetLanguage)
+            const languageName = selectedLanguage ? selectedLanguage.name : targetLanguage
 
-            const lineCount = previewContent.split("\n").filter((line) => line.trim()).length
-            alert(`Generated JSONL file with ${lineCount} words`)
-        } catch (error) {
-            console.error("Error generating JSONL:", error)
-            alert("Error generating JSONL file")
+            const jsonlContent = generateJsonlContent(words, languageName)
+            setPreviewContent(jsonlContent)
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Failed to generate preview"
+            setError(message)
+            console.error("Error generating preview:", err)
+        }
+    }
+
+    /**
+     * Downloads JSONL file
+     */
+    const handleGenerateJsonl = () => {
+        setIsGenerating(true)
+        try {
+            setError("")
+
+            if (!previewContent) {
+                setError("Please generate a preview first")
+                setIsGenerating(false)
+                return
+            }
+
+            const filename = `batch_words_${Date.now()}.jsonl`
+            downloadAsJsonl(previewContent, filename)
+
+            const lineCount = getJsonlLineCount(previewContent)
+            console.log(`Generated JSONL file with ${lineCount} words`)
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Failed to download file"
+            setError(message)
+            console.error("Error downloading file:", err)
         } finally {
             setIsGenerating(false)
         }
@@ -250,6 +143,12 @@ Difficulty should be labeled as one of the following based on the language learn
                     </p>
                 </div>
 
+                {error && (
+                    <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30">
+                        <p className="text-sm text-destructive">{error}</p>
+                    </div>
+                )}
+
                 <Button
                     onClick={handleGeneratePreview}
                     disabled={!wordList.trim()}
@@ -266,7 +165,7 @@ Difficulty should be labeled as one of the following based on the language learn
                             <h3 className="text-lg font-semibold mb-2">Preview</h3>
                             <div className="space-y-2">
                                 <p className="text-sm text-muted-foreground">
-                                    {previewContent.split("\n").filter((line) => line.trim()).length} entries
+                                    {getJsonlLineCount(previewContent)} entries
                                 </p>
                                 <div className="max-h-96 overflow-auto border rounded-lg p-4 bg-muted/50">
                                     <pre className="text-xs font-mono whitespace-pre-wrap break-words">
