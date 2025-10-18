@@ -17,9 +17,13 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
 import { Edit2, Plus, Trash2, X } from "lucide-react"
 import { LANGUAGES, PROFICIENCY_LEVELS } from "@/lib/constants/languages"
+import { useEffect, useState } from "react"
+import { listTags } from "@/lib/tags/client-utils"
 import type { Word, Collocation } from "@/lib/types/words"
+import type { Tag } from "@/lib/types/tags"
 
 interface WordEditDialogProps {
     isOpen: boolean
@@ -38,6 +42,8 @@ interface WordEditDialogProps {
     onUpdateCollocation: (pattern: string, index: number, field: "collocation" | "difficulty", value: string) => void
     onSave: () => void
     onDelete: () => void
+    wordTags?: string[] // IDs of tags associated with this word
+    onTagsChange?: (tagIds: string[]) => void // Callback when tags are modified
 }
 
 export function WordEditDialog({
@@ -57,7 +63,53 @@ export function WordEditDialog({
     onUpdateCollocation,
     onSave,
     onDelete,
+    wordTags = [],
+    onTagsChange,
 }: WordEditDialogProps) {
+    const [availableTags, setAvailableTags] = useState<Tag[]>([])
+    const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set(wordTags))
+    const [isLoadingTags, setIsLoadingTags] = useState(false)
+
+    // Load available tags on component mount
+    useEffect(() => {
+        let mounted = true
+        const loadTags = async () => {
+            setIsLoadingTags(true)
+            try {
+                const tags = await listTags({ limit: 100 })
+                if (mounted) {
+                    setAvailableTags(tags)
+                    setIsLoadingTags(false)
+                }
+            } catch (error) {
+                if (mounted) {
+                    console.error("Error loading tags:", error)
+                    setIsLoadingTags(false)
+                }
+            }
+        }
+        loadTags()
+        return () => {
+            mounted = false
+        }
+    }, [])
+
+    // Update selected tags when wordTags prop changes
+    useEffect(() => {
+        setSelectedTags(new Set(wordTags))
+    }, [wordTags])
+
+    const toggleTagSelection = (tagId: string) => {
+        const newTags = new Set(selectedTags)
+        if (newTags.has(tagId)) {
+            newTags.delete(tagId)
+        } else {
+            newTags.add(tagId)
+        }
+        setSelectedTags(newTags)
+        onTagsChange?.(Array.from(newTags))
+    }
+
     if (!selectedWord || !editedWord) return null
 
     return (
@@ -186,6 +238,36 @@ export function WordEditDialog({
                                 </div>
                             ))}
                         </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Tags */}
+                    <div>
+                        <label className="text-sm font-medium mb-2 block">Tags</label>
+                        <div className="flex flex-wrap gap-2 p-3 border rounded-md bg-muted/50 min-h-[44px]">
+                            {isLoadingTags ? (
+                                <span className="text-sm text-muted-foreground">Loading tags...</span>
+                            ) : availableTags.length === 0 ? (
+                                <span className="text-sm text-muted-foreground">No tags available</span>
+                            ) : (
+                                availableTags.map((tag) => (
+                                    <Badge
+                                        key={tag.id}
+                                        variant={selectedTags.has(tag.id) ? "default" : "outline"}
+                                        className={isEditing ? "cursor-pointer" : ""}
+                                        onClick={() => isEditing && toggleTagSelection(tag.id)}
+                                    >
+                                        {tag.name}
+                                    </Badge>
+                                ))
+                            )}
+                        </div>
+                        {selectedTags.size > 0 && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                                {selectedTags.size} tag(s) selected
+                            </p>
+                        )}
                     </div>
                 </div>
 

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { DataTable } from "@/components/ui/data-table"
 import { listWords, updateWord, deleteWord } from "@/lib/words/client-utils"
-import { getTagsForWord } from "@/lib/tags/client-utils"
+import { getTagsForWord, addTagToWord, removeTagFromWord } from "@/lib/tags/client-utils"
 import { LANGUAGES } from "@/lib/constants/languages"
 import { WordEditDialog } from "@/components/word-edit-dialog"
 import { useWordEditor } from "@/hooks/use-word-editor"
@@ -195,10 +195,18 @@ export function WordsListClient({
         }
     }
 
-    const handleOpenWord = (word: WordWithTags) => {
+    const handleOpenWord = async (word: WordWithTags) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { tags, ...wordData } = word
         editorActions.openWord(wordData)
+
+        // Load tags for this word
+        try {
+            const wordTags = await getTagsForWord(word.id)
+            editorActions.setWordTags(wordTags.map(t => t.id))
+        } catch (error) {
+            console.error(`Error loading tags for word ${word.id}:`, error)
+        }
     }
 
     const handleSaveWord = async () => {
@@ -211,13 +219,33 @@ export function WordsListClient({
                 lang: editorState.editedWord.lang,
                 collocations: editorState.editedWord.collocations,
             })
+
+            // Get the current word in the list to check its existing tags
+            const currentWord = words.find(w => w.id === editorState.editedWord!.id)
+            const currentTagIds = currentWord?.tags?.map(t => t.id) || []
+
+            // Determine which tags to add and remove
+            const tagsToAdd = editorState.wordTags.filter(id => !currentTagIds.includes(id))
+            const tagsToRemove = currentTagIds.filter(id => !editorState.wordTags.includes(id))
+
+            // Apply tag changes
+            await Promise.all([
+                ...tagsToAdd.map(tagId => addTagToWord(editorState.editedWord!.id, tagId)),
+                ...tagsToRemove.map(tagId => removeTagFromWord(editorState.editedWord!.id, tagId))
+            ])
+
+            // Update the word in the list with new tags
             setWords((prev) =>
                 prev.map((w) =>
                     w.id === editorState.editedWord!.id
-                        ? { ...editorState.editedWord!, tags: w.tags }
+                        ? {
+                            ...editorState.editedWord!,
+                            tags: w.tags?.filter(t => editorState.wordTags.includes(t.id)) || []
+                        }
                         : w
                 )
             )
+
             editorActions.exitEditMode()
             alert("Word updated successfully")
         } catch (error) {
@@ -319,6 +347,8 @@ export function WordsListClient({
                     onUpdateCollocation={editorActions.updateCollocation}
                     onSave={handleSaveWord}
                     onDelete={handleDeleteWord}
+                    wordTags={editorState.wordTags}
+                    onTagsChange={editorActions.setWordTags}
                 />
             </div>
         </div>
