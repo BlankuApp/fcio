@@ -240,7 +240,7 @@ export function WordsListClient({
                     w.id === editorState.editedWord!.id
                         ? {
                             ...editorState.editedWord!,
-                            tags: w.tags?.filter(t => editorState.wordTags.includes(t.id)) || []
+                            tags: availableTags.filter(tag => editorState.wordTags.includes(tag.id))
                         }
                         : w
                 )
