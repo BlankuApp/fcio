@@ -71,7 +71,7 @@ export async function listTags(opts: ListTagsOptions = {}): Promise<Tag[]> {
 
     if (q) {
         // search in name and normalized_name
-        query = query.ilike('name', `%${q}%`).or(`normalized_name.ilike.%${q}%`)
+        query = query.or(`name.ilike.%${q}%,normalized_name.ilike.%${q}%`)
     }
 
     if (opts.limit) query = query.limit(opts.limit)
