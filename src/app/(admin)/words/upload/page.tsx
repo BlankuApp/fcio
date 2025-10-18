@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { UploadCloud } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { bulkUpsertWords, checkExistingWords } from "@/lib/words/client-utils"
 import { LANGUAGES } from "@/lib/constants/languages"
 import {
@@ -14,17 +14,20 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import type { ParsedResultType, ParsedResult } from "@/lib/types/words"
+import type { Tag } from "@/lib/types/tags"
 import { JsonlUploadZone } from "@/components/jsonl-upload-zone"
 import { ParsedResultsDisplay } from "@/components/parsed-results-display"
 import { SelectionToolbar } from "@/components/selection-toolbar"
 import { AlertDialog } from "@/components/alert-dialog"
 import { useResultSelection } from "@/hooks/use-result-selection"
 import { useAlert } from "@/hooks/use-alert"
+import { Badge } from "@/components/ui/badge"
 import {
     parseBatchFile,
     detectLanguageFromFilename,
     filterValidResults,
 } from "@/lib/words/parse-batch-results"
+import { listTags, addTagToWord } from "@/lib/tags/client-utils"
 
 export default function UploadWordsPage() {
     const [uploadedFile, setUploadedFile] = useState<File | null>(null)
@@ -33,9 +36,54 @@ export default function UploadWordsPage() {
     const [isProcessing, setIsProcessing] = useState(false)
     const [targetLanguage, setTargetLanguage] = useState<string>("")
     const [isDragActive, setIsDragActive] = useState(false)
+    const [availableTags, setAvailableTags] = useState<Tag[]>([])
+    const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
+    const [isLoadingTags, setIsLoadingTags] = useState(false)
 
     const { selectedResults, toggleResult, selectAll, deselectAll, invertSelection, selectOnlyNewWords, selectOnlyExisting, reset } = useResultSelection()
     const { alert, showAlert, closeAlert } = useAlert()
+
+    // Load available tags on component mount
+    // Note: showAlert is intentionally not in dependencies - we only want this to run once on mount
+    // The mounted flag prevents state updates if component unmounts during async operation
+    useEffect(() => {
+        let mounted = true
+        const loadTags = async () => {
+            setIsLoadingTags(true)
+            try {
+                const tags = await listTags({ limit: 100 })
+                if (mounted) {
+                    setAvailableTags(tags)
+                    setIsLoadingTags(false)
+                }
+            } catch (error) {
+                if (mounted) {
+                    console.error("Error loading tags:", error)
+                    setIsLoadingTags(false)
+                    showAlert(
+                        `Error loading tags: ${error instanceof Error ? error.message : "Unknown error"}`,
+                        "error",
+                        "Tags Load Error"
+                    )
+                }
+            }
+        }
+        loadTags()
+        return () => {
+            mounted = false
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    const toggleTagSelection = (tagId: string) => {
+        const newTags = new Set(selectedTags)
+        if (newTags.has(tagId)) {
+            newTags.delete(tagId)
+        } else {
+            newTags.add(tagId)
+        }
+        setSelectedTags(newTags)
+    }
 
     const handleFileUpload = async (file: File) => {
         try {
@@ -144,8 +192,31 @@ export default function UploadWordsPage() {
 
             const processedWords = await bulkUpsertWords(wordsToInsert)
 
+            // Apply selected tags to all inserted/updated words
+            if (selectedTags.size > 0 && processedWords.length > 0) {
+                const wordIds = processedWords.map((word) => word.id)
+                const tagIds = Array.from(selectedTags)
+
+                try {
+                    // Add tags in parallel for all word-tag combinations
+                    const tagPromises = wordIds.flatMap((wordId) =>
+                        tagIds.map((tagId) => addTagToWord(wordId, tagId))
+                    )
+                    await Promise.all(tagPromises)
+                } catch (tagError) {
+                    // Log tag association error but don't fail the whole operation
+                    console.error("Error associating tags:", tagError)
+                    showAlert(
+                        `Words added successfully, but some tags could not be applied: ${tagError instanceof Error ? tagError.message : "Unknown error"}`,
+                        "info",
+                        "Partial Success"
+                    )
+                    return
+                }
+            }
+
             showAlert(
-                `Successfully processed ${processedWords.length} words (inserted/updated)!`,
+                `Successfully processed ${processedWords.length} words (inserted/updated)!${selectedTags.size > 0 ? ` Applied ${selectedTags.size} tag(s).` : ""}`,
                 "success",
                 "Upload Complete"
             )
@@ -218,6 +289,33 @@ export default function UploadWordsPage() {
                                         Parse & Check for Duplicates
                                     </Button>
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium mb-2 block">Tags (Optional)</label>
+                                <div className="flex flex-wrap gap-2 p-3 border rounded-md bg-muted/50 min-h-[44px]">
+                                    {isLoadingTags ? (
+                                        <span className="text-sm text-muted-foreground">Loading tags...</span>
+                                    ) : availableTags.length === 0 ? (
+                                        <span className="text-sm text-muted-foreground">No tags available</span>
+                                    ) : (
+                                        availableTags.map((tag) => (
+                                            <Badge
+                                                key={tag.id}
+                                                variant={selectedTags.has(tag.id) ? "default" : "outline"}
+                                                className="cursor-pointer"
+                                                onClick={() => toggleTagSelection(tag.id)}
+                                            >
+                                                {tag.name}
+                                            </Badge>
+                                        ))
+                                    )}
+                                </div>
+                                {selectedTags.size > 0 && (
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                        {selectedTags.size} tag(s) selected
+                                    </p>
+                                )}
                             </div>
 
                             <Separator className="my-4" />

@@ -8,6 +8,7 @@ interface EditState {
     isEditing: boolean
     isSaving: boolean
     isDeleting: boolean
+    wordTags: string[] // IDs of tags associated with the current word
 }
 
 interface EditActions {
@@ -23,6 +24,7 @@ interface EditActions {
     setSaving: (saving: boolean) => void
     setDeleting: (deleting: boolean) => void
     resetEditedWord: () => void
+    setWordTags: (tagIds: string[]) => void
 }
 
 export function useWordEditor(): [EditState, EditActions] {
@@ -32,12 +34,14 @@ export function useWordEditor(): [EditState, EditActions] {
     const [isEditing, setIsEditing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
+    const [wordTags, setWordTagsState] = useState<string[]>([])
 
     const openWord = useCallback((word: Word) => {
         setSelectedWord(word)
         setEditedWord(structuredClone(word))
         setIsEditing(false)
         setIsDialogOpen(true)
+        setWordTagsState([]) // Reset tags when opening a new word
     }, [])
 
     const closeDialog = useCallback(() => {
@@ -136,13 +140,18 @@ export function useWordEditor(): [EditState, EditActions] {
         }
     }, [selectedWord])
 
+    const setWordTags = useCallback((tagIds: string[]) => {
+        setWordTagsState(tagIds)
+    }, [])
+
     const state: EditState = {
         selectedWord,
         editedWord,
         isDialogOpen,
         isEditing,
         isSaving,
-        isDeleting
+        isDeleting,
+        wordTags
     }
 
     const actions: EditActions = {
@@ -157,7 +166,8 @@ export function useWordEditor(): [EditState, EditActions] {
         updateCollocation,
         setSaving,
         setDeleting,
-        resetEditedWord
+        resetEditedWord,
+        setWordTags
     }
 
     return [state, actions]
