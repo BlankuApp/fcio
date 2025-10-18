@@ -1,9 +1,15 @@
 # AI FlashCards - Copilot Instructions
 
 ## Project Overview
-AI-powered flashcard application built with **Next.js 15** (App Router), **React 19**, **Supabase** (PostgreSQL + Auth), and **shadcn/ui**. Features sidebar navigation, multi-language support, and role-based admin access.
+AI-powered flashcard application built with **Next.js 15** (App Router), **React 19**, **Supabase** (PostgreSQL + Auth), and **shadcn/ui**. 
+
+**Tech Stack**: Next.js 15 with Turbopack, React 19, TypeScript, Tailwind CSS, Vitest for testing (141 tests passing)  
+**Backend**: Supabase (PostgreSQL + Auth)  
+**UI Components**: shadcn/ui (new-york style) with lucide-react icons  
+**Key Features**: Sidebar navigation, multi-language support, role-based admin access, AI-powered word collocation generation
+
+Developed on Windows with PowerShell commands.
 For html/css components, try to use the `npx shadcn@latest add <component-name>` command to scaffold them into `src/components/ui/`.
-The project is developed in Windows using PowerShell commands.
 
 ## Critical Architecture Patterns
 
@@ -34,19 +40,47 @@ Same dual pattern in `@/lib/user-profile/`:
 - **Convenience**: `index.ts` exports with `Server` suffix: `createUserProfileServer`, `getUserProfileServer`
 
 ### 2. Database Schema (Supabase)
-Core table: `user_profiles`
+
+**`user_profiles`** - Core user data (linked to auth.users)
 ```typescript
 {
-  id: string              // matches auth.users.id
+  id: string                         // matches auth.users.id
   email: string
   username: string
-  mother_tongues: string[]           // PostgreSQL array
-  target_languages: TargetLanguage[] // JSON array: [{languageCode, proficiency}]
+  mother_tongues: string[]           // PostgreSQL array: ["en", "fa"]
+  target_languages: TargetLanguage[] // JSON: [{languageCode: "ja", proficiency: "intermediate"}]
   is_admin: boolean
   created_at: string
   updated_at: string
 }
 ```
+
+**`words`** - Unique lemmas per language with generated collocations
+```typescript
+{
+  id: string                         // UUID
+  lemma: string                      // word/base form
+  lang: string                       // language code (e.g., "en", "ja")
+  collocations: CollocationsPattern  // JSON: {[pattern]: [{collocation, difficulty}]}
+  created_at: string
+  updated_at: string
+  // Unique constraint on (lemma, lang)
+}
+```
+
+**`tags`** - Categorization tags for organizing words
+```typescript
+{
+  id: string
+  name: string                       // display name
+  normalized_name: string            // unique indexed: lowercase, trimmed
+  creator_id: string                 // user_profiles.id
+  created_at: string
+  updated_at: string
+}
+```
+
+**`word_tags`** - Join table linking words to tags (cascade deletes)
 
 ### 3. Authentication & Authorization Flow
 
@@ -89,14 +123,18 @@ useEffect(() => {
 ### 4. Route Organization
 ```
 src/app/
-├── layout.tsx          # Root layout with SidebarProvider
-├── page.tsx            # Home page
-├── (admin)/            # Route group (doesn't affect URL)
-│   ├── admin/          # /admin - dashboard
-│   └── words/          # /words - add words
-└── profile/            # /profile - user settings
+├── layout.tsx              # Root layout with SidebarProvider
+├── page.tsx                # Home page
+├── (admin)/                # Route group (doesn't affect URL)
+│   ├── admin/page.tsx      # /admin - dashboard (admin-only)
+│   └── words/              # /words/* (admin-only)
+│       ├── list/page.tsx   # /words/list
+│       ├── generate/       # /words/generate (JSONL generation)
+│       ├── tags/           # /words/tags (tag management)
+│       └── upload/         # /words/upload (batch upload)
+└── profile/page.tsx        # /profile - user settings
 ```
-Route groups `(admin)` organize files without adding URL segments.
+Route groups `(admin)` organize files without affecting URLs. Middleware (`src/middleware.ts`) enforces admin protection on `/admin` and `/words` routes.
 
 ## Development Workflow
 
@@ -109,9 +147,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 ### Dev Commands (PowerShell)
 ```powershell
-npm run dev    # Port 3030 (Turbopack enabled)
-npm run build  # Production build with Turbopack
-npm run lint   # ESLint check
+npm run dev          # Port 3030 (Turbopack enabled)
+npm run build        # Production build with Turbopack
+npm run lint         # ESLint check
+npm test             # Run tests in watch mode
+npm run test:ui      # Interactive Vitest UI
+npm run test:coverage # Coverage report
 ```
 
 ### Adding shadcn/ui Components
@@ -119,6 +160,43 @@ npm run lint   # ESLint check
 npx shadcn@latest add <component-name>
 ```
 Components install to `src/components/ui/` with "new-york" style preset.
+
+## Business Logic Patterns
+
+### Words & Collocations Workflow
+1. **AI Batch Generation**: `src/lib/ai/batch-request-builder.ts` generates OpenAI batch requests for JSONL files
+2. **Result Parsing**: `src/lib/words/parse-batch-results.ts` parses batch results into `CollocationsPattern` format
+3. **Upsert Logic**: `upsertWord()` automatically deduplicates by (lemma, lang) unique constraint
+4. **Tagging**: `word_tags` join table with cascade deletes for word categorization
+
+### Language Configuration
+- **Mother Tongues**: `user_profiles.mother_tongues` (PostgreSQL array of language codes)
+- **Target Languages**: `user_profiles.target_languages` (JSON: `[{languageCode: "ja", proficiency: "intermediate"}]`)
+- Constants in `src/lib/constants/languages.ts`: 15+ languages with proficiency levels
+
+### Admin Workflows
+- **Profile Setup**: Admin users set `is_admin: true` in `user_profiles` table
+- **Route Protection**: Middleware redirects non-admin users attempting `/admin` or `/words` routes
+- **Dynamic UI**: `app-sidebar.tsx` checks `isAdmin()` to show admin nav items only to admins
+
+## Test Suite Status
+
+✅ **COMPLETE - 141 tests passing**
+
+Comprehensive test suite implemented covering TIER 1 CRITICAL and TIER 2 HIGH priority areas:
+
+| Component | Tests | Status |
+|-----------|-------|--------|
+| Parse Batch Results (`tests/unit/lib/words/parse-batch-results.test.ts`) | 46 | ✅ Passing |
+| Batch Request Builder (`tests/unit/lib/ai/batch-request-builder.test.ts`) | 48 | ✅ Passing |
+| Word Client Utils (`tests/unit/lib/words/client-utils.test.ts`) | 17 | ✅ Passing |
+| Tag Utils (`tests/unit/lib/tags/utils.test.ts`) | 17 | ✅ Passing |
+| Auth Utils (`tests/unit/lib/auth/utils.test.ts`) | 13 | ✅ Passing |
+| **TOTAL** | **141** | **✅ 100% Pass Rate** |
+
+**Run tests**: `npm test` or `npm run test:ui` for interactive mode  
+**Coverage**: All critical parsing, request generation, CRUD operations, and authentication flows  
+**Mocks**: See `tests/mocks/supabase.ts` for client mock patterns
 
 ## Styling & UI Conventions
 
@@ -147,45 +225,6 @@ Use **lucide-react** exclusively. Import specific icons:
 ```tsx
 import { Shield, Users, Settings } from "lucide-react"
 ```
-
-## Language Support System
-
-### Language Constants (`src/lib/constants/languages.ts`)
-```typescript
-export const LANGUAGES: Language[] = [
-  { code: "en", name: "English", nativeName: "English" },
-  { code: "ja", name: "Japanese", nativeName: "日本語" },
-  // ... 15 total languages
-]
-
-export const PROFICIENCY_LEVELS: ProficiencyLevel[] = [
-  { value: "elementary", label: "Elementary", description: "..." },
-  // ... 5 levels total
-]
-```
-
-### User Language Configuration
-- **Mother tongues**: Array of language codes (`["en", "fa"]`)
-- **Target languages**: Array of `{languageCode: string, proficiency: string}` objects
-- Helper functions: `getLanguageByCode()`, `getLanguageDisplayName()`
-
-## Test Suite Status
-
-✅ **COMPLETE - 141 tests passing**
-
-Comprehensive test suite implemented covering TIER 1 CRITICAL and TIER 2 HIGH priority areas:
-
-| Component | Tests | Status |
-|-----------|-------|--------|
-| Parse Batch Results (`tests/unit/lib/words/parse-batch-results.test.ts`) | 46 | ✅ Passing |
-| Batch Request Builder (`tests/unit/lib/ai/batch-request-builder.test.ts`) | 48 | ✅ Passing |
-| Word Client Utils (`tests/unit/lib/words/client-utils.test.ts`) | 17 | ✅ Passing |
-| Tag Utils (`tests/unit/lib/tags/utils.test.ts`) | 17 | ✅ Passing |
-| Auth Utils (`tests/unit/lib/auth/utils.test.ts`) | 13 | ✅ Passing |
-| **TOTAL** | **141** | **✅ 100% Pass Rate** |
-
-**Run tests**: `npm test` or `npm run test:ui` for interactive mode  
-**Coverage**: All critical parsing, request generation, CRUD operations, and authentication flows
 
 ## Common Pitfalls
 
@@ -224,3 +263,24 @@ Comprehensive test suite implemented covering TIER 1 CRITICAL and TIER 2 HIGH pr
 
 - `word_tags_tag_id_idx` (index)
   - Index on `word_tags.tag_id` to speed queries that fetch words for a tag.
+
+## Language Support System
+
+### Language Constants (`src/lib/constants/languages.ts`)
+```typescript
+export const LANGUAGES: Language[] = [
+  { code: "en", name: "English", nativeName: "English" },
+  { code: "ja", name: "Japanese", nativeName: "日本語" },
+  // ... 15 total languages
+]
+
+export const PROFICIENCY_LEVELS: ProficiencyLevel[] = [
+  { value: "elementary", label: "Elementary", description: "..." },
+  // ... 5 levels total
+]
+```
+
+### User Language Configuration
+- **Mother tongues**: Array of language codes (`["en", "fa"]`)
+- **Target languages**: Array of `{languageCode: string, proficiency: string}` objects
+- Helper functions: `getLanguageByCode()`, `getLanguageDisplayName()`
