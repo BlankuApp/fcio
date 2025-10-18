@@ -24,6 +24,11 @@ export function generateDeckId(): string {
 export async function createDeck(userId: string, input: CreateDeckInput): Promise<Deck> {
     const supabase = await createClient()
 
+    // Validate name length (max 50 chars)
+    if (input.name.length > 50) {
+        throw new Error("Deck name must be 50 characters or less")
+    }
+
     // Validate answer languages is an array
     let ansLangs: string[] = []
     if (Array.isArray(input.ans_langs)) {
@@ -43,6 +48,7 @@ export async function createDeck(userId: string, input: CreateDeckInput): Promis
             {
                 id: generateDeckId(),
                 user_id: userId,
+                name: input.name,
                 que_lang: input.que_lang,
                 ans_langs: ansLangs,
                 diff_level: input.diff_level,
@@ -136,6 +142,11 @@ export async function updateDeck(id: string, userId: string, updates: UpdateDeck
     const existing = await getDeckByIdForUser(id, userId)
     if (!existing) {
         throw new Error(`Deck not found or does not belong to user`)
+    }
+
+    // Validate name length if provided
+    if (updates.name !== undefined && updates.name.length > 50) {
+        throw new Error("Deck name must be 50 characters or less")
     }
 
     // Process ans_langs if provided

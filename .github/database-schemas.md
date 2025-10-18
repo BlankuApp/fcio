@@ -80,6 +80,7 @@ create index IF not exists word_tags_tag_id_idx on public.word_tags using btree 
 create table public.decks (
   id character varying not null,
   user_id uuid not null,
+  name text not null default ''::text,
   que_lang character varying not null default 'en'::character varying,
   ans_langs character varying not null default '[''es'']'::character varying,
   diff_level character varying not null default 'elementary'::character varying,

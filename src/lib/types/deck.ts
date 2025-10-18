@@ -11,6 +11,7 @@ import type { ProficiencyLevel } from "@/lib/constants/languages"
 export interface Deck {
     id: string                         // YouTube-like ID (11 chars)
     user_id: string                    // Links to auth.users.id
+    name: string                       // Deck name (max 50 chars)
     que_lang: string                   // Question language code (e.g., "en", "es", "ja")
     ans_langs: string[]                // Array of answer language codes (e.g., ["es", "ja"])
     diff_level: ProficiencyLevel["value"] // One of the 6 proficiency levels
@@ -27,6 +28,7 @@ export type DifficultyLevel = ProficiencyLevel["value"]
  * Input data for creating a new deck
  */
 export interface CreateDeckInput {
+    name: string                 // Deck name (max 50 chars)
     que_lang: string             // Question language code
     ans_langs: string[]          // Array of answer language codes
     diff_level: DifficultyLevel  // Difficulty level
@@ -36,6 +38,7 @@ export interface CreateDeckInput {
  * Input data for updating an existing deck
  */
 export interface UpdateDeckInput {
+    name?: string                // Optional: update deck name (max 50 chars)
     que_lang?: string            // Optional: update question language
     ans_langs?: string[]         // Optional: update answer languages
     diff_level?: DifficultyLevel // Optional: update difficulty level
