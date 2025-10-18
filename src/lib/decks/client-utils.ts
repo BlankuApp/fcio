@@ -21,7 +21,7 @@ export function generateDeckId(): string {
 /**
  * CLIENT-SIDE: Create a new deck
  */
-export async function createDeck(input: CreateDeckInput): Promise<Deck> {
+export async function createDeck(userId: string, input: CreateDeckInput): Promise<Deck> {
     const supabase = createClient()
 
     // Validate name length (max 50 chars)
@@ -47,6 +47,7 @@ export async function createDeck(input: CreateDeckInput): Promise<Deck> {
         .insert([
             {
                 id: generateDeckId(),
+                user_id: userId,
                 name: input.name,
                 que_lang: input.que_lang,
                 ans_langs: ansLangs,
@@ -82,10 +83,10 @@ export async function getDeckById(id: string): Promise<Deck | null> {
 /**
  * CLIENT-SIDE: List all decks for the current user
  */
-export async function listUserDecks(options?: ListDecksOptions): Promise<Deck[]> {
+export async function listUserDecks(userId: string, options?: ListDecksOptions): Promise<Deck[]> {
     const supabase = createClient()
 
-    let query = supabase.from("decks").select("*")
+    let query = supabase.from("decks").select("*").eq("user_id", userId)
 
     // Filter by question language if provided
     if (options?.que_lang) {
@@ -182,12 +183,13 @@ export async function deleteDecks(ids: string[]): Promise<void> {
 /**
  * CLIENT-SIDE: Count decks for the current user
  */
-export async function countUserDecks(): Promise<number> {
+export async function countUserDecks(userId: string): Promise<number> {
     const supabase = createClient()
 
     const { count, error } = await supabase
         .from("decks")
         .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
 
     if (error) throw new Error(`Failed to count decks: ${error.message}`)
     return count || 0
