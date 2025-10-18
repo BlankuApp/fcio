@@ -2,6 +2,7 @@
 
 ## Project Overview
 AI-powered flashcard application built with **Next.js 15** (App Router), **React 19**, **Supabase** (PostgreSQL + Auth), and **shadcn/ui**. Features sidebar navigation, multi-language support, and role-based admin access.
+For html/css components, try to use the `npx shadcn@latest add <component-name>` command to scaffold them into `src/components/ui/`.
 
 ## Critical Architecture Patterns
 
