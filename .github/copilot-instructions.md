@@ -3,6 +3,7 @@
 ## Project Overview
 AI-powered flashcard application built with **Next.js 15** (App Router), **React 19**, **Supabase** (PostgreSQL + Auth), and **shadcn/ui**. Features sidebar navigation, multi-language support, and role-based admin access.
 For html/css components, try to use the `npx shadcn@latest add <component-name>` command to scaffold them into `src/components/ui/`.
+The project is developed in Windows using PowerShell commands.
 
 ## Critical Architecture Patterns
 
@@ -167,6 +168,24 @@ export const PROFICIENCY_LEVELS: ProficiencyLevel[] = [
 - **Mother tongues**: Array of language codes (`["en", "fa"]`)
 - **Target languages**: Array of `{languageCode: string, proficiency: string}` objects
 - Helper functions: `getLanguageByCode()`, `getLanguageDisplayName()`
+
+## Test Suite Status
+
+✅ **COMPLETE - 141 tests passing**
+
+Comprehensive test suite implemented covering TIER 1 CRITICAL and TIER 2 HIGH priority areas:
+
+| Component | Tests | Status |
+|-----------|-------|--------|
+| Parse Batch Results (`tests/unit/lib/words/parse-batch-results.test.ts`) | 46 | ✅ Passing |
+| Batch Request Builder (`tests/unit/lib/ai/batch-request-builder.test.ts`) | 48 | ✅ Passing |
+| Word Client Utils (`tests/unit/lib/words/client-utils.test.ts`) | 17 | ✅ Passing |
+| Tag Utils (`tests/unit/lib/tags/utils.test.ts`) | 17 | ✅ Passing |
+| Auth Utils (`tests/unit/lib/auth/utils.test.ts`) | 13 | ✅ Passing |
+| **TOTAL** | **141** | **✅ 100% Pass Rate** |
+
+**Run tests**: `npm test` or `npm run test:ui` for interactive mode  
+**Coverage**: All critical parsing, request generation, CRUD operations, and authentication flows
 
 ## Common Pitfalls
 

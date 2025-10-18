@@ -1,5 +1,8 @@
 {
   "editor.formatOnSave": true,
 "editor.formatOnPaste": true,
-"editor.defaultFormatter": "vscode.typescript-language-features"
+"editor.defaultFormatter": "vscode.typescript-language-features",
+"[json]": {
+  "editor.defaultFormatter": "vscode.json-language-features"
+}
 }
