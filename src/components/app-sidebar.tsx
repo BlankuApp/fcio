@@ -13,6 +13,7 @@ import Link from "next/link"
 import * as React from "react"
 
 import { MainNav } from "@/components/nav-main"
+import { DecksNav } from "@/components/decks-nav"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -30,13 +31,7 @@ type NavItem = {
   items?: NavItem[]
 }
 
-const main_nav: NavItem[] = [
-  {
-    name: "Decks",
-    url: "/decks",
-    icon: LibraryBig,
-  },
-]
+const main_nav: NavItem[] = []
 
 const wordsSubNav: NavItem[] = [
   {
@@ -108,6 +103,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </Link>
       </SidebarHeader>
       <SidebarContent>
+        <DecksNav icon={LibraryBig} />
         {!isLoading && <MainNav projects={navItems} />}
       </SidebarContent>
       <SidebarFooter>
