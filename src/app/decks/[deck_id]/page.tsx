@@ -70,11 +70,18 @@ export default function DeckPage() {
     const queLanguage = getLanguageByCode(deck.que_lang)
 
     // Ensure ans_langs is an array (handle cases where it might be a string or null)
-    const ansLangsArray: string[] = Array.isArray(deck.ans_langs)
-        ? deck.ans_langs
-        : typeof deck.ans_langs === 'string'
-            ? JSON.parse(deck.ans_langs)
-            : []
+    let ansLangsArray: string[] = [];
+    if (Array.isArray(deck.ans_langs)) {
+        ansLangsArray = deck.ans_langs;
+    } else if (typeof deck.ans_langs === 'string') {
+        try {
+            ansLangsArray = JSON.parse(deck.ans_langs);
+        } catch (e) {
+            // Optionally log the error for debugging
+            // console.error("Failed to parse ans_langs JSON:", e);
+            ansLangsArray = [];
+        }
+    }
 
     const ansLanguages = ansLangsArray
         .map((code: string) => getLanguageByCode(code))
