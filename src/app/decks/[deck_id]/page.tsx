@@ -76,7 +76,7 @@ export default function DeckPage() {
     } else if (typeof deck.ans_langs === 'string') {
         try {
             ansLangsArray = JSON.parse(deck.ans_langs);
-        } catch (e) {
+        } catch {
             // Optionally log the error for debugging
             // console.error("Failed to parse ans_langs JSON:", e);
             ansLangsArray = [];
@@ -170,7 +170,10 @@ export default function DeckPage() {
 
                     {/* Action Buttons */}
                     <div className="flex gap-3 pt-4">
-                        <Button variant="default">
+                        <Button
+                            variant="default"
+                            onClick={() => router.push(`/decks/${deck.id}/review`)}
+                        >
                             Start Practice
                         </Button>
                         <Button variant="outline">

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack  --port 3030",
+    "dev1": "next dev --turbopack  --port 3031",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
