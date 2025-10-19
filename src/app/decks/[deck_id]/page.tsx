@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Loader2 } from "lucide-react"
 import { getDeckById } from "@/lib/decks/client-utils"
 import { getLanguageByCode, getLanguageDisplayName, PROFICIENCY_LEVELS, type Language } from "@/lib/constants/languages"
+import { DeckWordsClient } from "@/components/deck-words-client"
 import type { Deck } from "@/lib/types/deck"
 
 export default function DeckPage() {
@@ -174,6 +175,9 @@ export default function DeckPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Words Table */}
+            <DeckWordsClient languageCode={deck.que_lang} />
         </div>
     )
 }
