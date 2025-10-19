@@ -5,7 +5,8 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
 import { DataTable } from "@/components/ui/data-table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Toggle } from "@/components/ui/toggle"
+import { Switch } from "@/components/ui/switch"
+import { toast } from "sonner"
 import { getWordsByLanguage } from "@/lib/words/client-utils"
 import { getTagsForWord, listTags } from "@/lib/tags/client-utils"
 import {
@@ -14,7 +15,6 @@ import {
     wordExistsInDeck,
 } from "@/lib/decks/deck-words-client"
 import { LANGUAGES } from "@/lib/constants/languages"
-import { Plus, Check } from "lucide-react"
 import type { Word } from "@/lib/types/words"
 import type { Tag } from "@/lib/types/tags"
 
@@ -41,23 +41,14 @@ const createColumns = (deckId: string, onToggle: (wordId: string, inDeck: boolea
         enableResizing: false,
         cell: ({ row }) => (
             <div className="flex justify-center w-10">
-                <Toggle
-                    pressed={row.original.inDeck}
-                    onPressedChange={() =>
+                <Switch
+                    checked={row.original.inDeck}
+                    onCheckedChange={() =>
                         onToggle(row.original.id, !row.original.inDeck)
                     }
                     disabled={row.original.isLoading}
-                    className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground h-8 w-8 p-0"
                     aria-label="Toggle word in deck"
-                >
-                    {row.original.isLoading ? (
-                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    ) : row.original.inDeck ? (
-                        <Check className="w-4 h-4" />
-                    ) : (
-                        <Plus className="w-4 h-4" />
-                    )}
-                </Toggle>
+                />
             </div>
         ),
         enableSorting: false,
@@ -218,6 +209,9 @@ export function DeckWordsClient({
     }
 
     const handleToggleWord = async (wordId: string, shouldAdd: boolean) => {
+        const word = words.find((w) => w.id === wordId)
+        const wordLemma = word?.lemma || "Word"
+
         try {
             // Update UI immediately for optimistic update
             setWords((prev) =>
@@ -228,8 +222,10 @@ export function DeckWordsClient({
 
             if (shouldAdd) {
                 await addWordToDeck(deckId, { word_id: wordId })
+                toast.success(`"${wordLemma}" added to deck`)
             } else {
                 await removeWordFromDeck(deckId, wordId)
+                toast.success(`"${wordLemma}" removed from deck`)
             }
 
             // Update the word's status
@@ -247,6 +243,9 @@ export function DeckWordsClient({
                     : "Failed to update word"
             console.error("Error toggling word:", error)
             setError(errorMessage)
+
+            // Show error toast
+            toast.error(`Failed to ${shouldAdd ? "add" : "remove"} "${wordLemma}": ${errorMessage}`)
 
             // Revert UI on error
             setWords((prev) =>
