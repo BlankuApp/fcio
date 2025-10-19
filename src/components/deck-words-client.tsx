@@ -5,23 +5,64 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
 import { DataTable } from "@/components/ui/data-table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Toggle } from "@/components/ui/toggle"
 import { getWordsByLanguage } from "@/lib/words/client-utils"
 import { getTagsForWord, listTags } from "@/lib/tags/client-utils"
+import {
+    addWordToDeck,
+    removeWordFromDeck,
+    wordExistsInDeck,
+} from "@/lib/decks/deck-words-client"
 import { LANGUAGES } from "@/lib/constants/languages"
+import { Plus, Check } from "lucide-react"
 import type { Word } from "@/lib/types/words"
 import type { Tag } from "@/lib/types/tags"
 
 interface DeckWordsClientProps {
     languageCode: string
+    deckId: string
     initialWords?: Word[]
 }
 
 interface WordWithTags extends Word {
     tags?: Tag[]
+    inDeck?: boolean
+    isLoading?: boolean
 }
 
 // Define columns for the DataTable
-const createColumns = (): ColumnDef<WordWithTags>[] => [
+const createColumns = (deckId: string, onToggle: (wordId: string, inDeck: boolean) => void): ColumnDef<WordWithTags>[] => [
+    {
+        id: "addToDeck",
+        header: "Add to deck",
+        size: 40,
+        minSize: 40,
+        maxSize: 40,
+        enableResizing: false,
+        cell: ({ row }) => (
+            <div className="flex justify-center w-10">
+                <Toggle
+                    pressed={row.original.inDeck}
+                    onPressedChange={() =>
+                        onToggle(row.original.id, !row.original.inDeck)
+                    }
+                    disabled={row.original.isLoading}
+                    className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground h-8 w-8 p-0"
+                    aria-label="Toggle word in deck"
+                >
+                    {row.original.isLoading ? (
+                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : row.original.inDeck ? (
+                        <Check className="w-4 h-4" />
+                    ) : (
+                        <Plus className="w-4 h-4" />
+                    )}
+                </Toggle>
+            </div>
+        ),
+        enableSorting: false,
+        enableColumnFilter: false,
+    },
     {
         accessorKey: "lemma",
         header: "Word",
@@ -79,6 +120,7 @@ const createColumns = (): ColumnDef<WordWithTags>[] => [
 
 export function DeckWordsClient({
     languageCode,
+    deckId,
     initialWords = [],
 }: DeckWordsClientProps) {
     const [words, setWords] = useState<WordWithTags[]>(initialWords)
@@ -92,10 +134,11 @@ export function DeckWordsClient({
             loadWords()
         } else {
             loadTagsForWords(initialWords)
+            checkWordsInDeck(initialWords)
         }
         loadAllTags()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [languageCode])
+    }, [languageCode, deckId])
 
     const loadWords = async () => {
         try {
@@ -103,6 +146,7 @@ export function DeckWordsClient({
             setError(null)
             const data = await getWordsByLanguage(languageCode)
             await loadTagsForWords(data)
+            await checkWordsInDeck(data)
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Failed to load words"
             setError(errorMessage)
@@ -110,6 +154,33 @@ export function DeckWordsClient({
             setWords([])
         } finally {
             setLoading(false)
+        }
+    }
+
+    const checkWordsInDeck = async (wordsData: Word[]) => {
+        try {
+            const wordsWithStatus = await Promise.all(
+                wordsData.map(async (word) => {
+                    try {
+                        const inDeck = await wordExistsInDeck(deckId, word.id)
+                        return { ...word, inDeck, isLoading: false }
+                    } catch (error) {
+                        console.error(
+                            `Error checking if word ${word.id} is in deck:`,
+                            error
+                        )
+                        return { ...word, inDeck: false, isLoading: false }
+                    }
+                })
+            )
+            setWords((prev) =>
+                prev.map((word) => {
+                    const updated = wordsWithStatus.find((w) => w.id === word.id)
+                    return updated ? { ...word, ...updated } : word
+                })
+            )
+        } catch (error) {
+            console.error("Error checking words in deck:", error)
         }
     }
 
@@ -143,6 +214,48 @@ export function DeckWordsClient({
         } catch (error) {
             console.error("Error loading tags:", error)
             setAllTags([])
+        }
+    }
+
+    const handleToggleWord = async (wordId: string, shouldAdd: boolean) => {
+        try {
+            // Update UI immediately for optimistic update
+            setWords((prev) =>
+                prev.map((word) =>
+                    word.id === wordId ? { ...word, isLoading: true } : word
+                )
+            )
+
+            if (shouldAdd) {
+                await addWordToDeck(deckId, { word_id: wordId })
+            } else {
+                await removeWordFromDeck(deckId, wordId)
+            }
+
+            // Update the word's status
+            setWords((prev) =>
+                prev.map((word) =>
+                    word.id === wordId
+                        ? { ...word, inDeck: shouldAdd, isLoading: false }
+                        : word
+                )
+            )
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : "Failed to update word"
+            console.error("Error toggling word:", error)
+            setError(errorMessage)
+
+            // Revert UI on error
+            setWords((prev) =>
+                prev.map((word) =>
+                    word.id === wordId
+                        ? { ...word, inDeck: !shouldAdd, isLoading: false }
+                        : word
+                )
+            )
         }
     }
 
@@ -182,7 +295,7 @@ export function DeckWordsClient({
                     </div>
                 ) : (
                     <DataTable
-                        columns={createColumns()}
+                        columns={createColumns(deckId, handleToggleWord)}
                         data={words}
                         searchPlaceholder="Search by word..."
                         searchKey="lemma"

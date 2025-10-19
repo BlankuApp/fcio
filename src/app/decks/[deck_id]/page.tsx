@@ -177,7 +177,7 @@ export default function DeckPage() {
             </Card>
 
             {/* Words Table */}
-            <DeckWordsClient languageCode={deck.que_lang} />
+            <DeckWordsClient languageCode={deck.que_lang} deckId={deck.id} />
         </div>
     )
 }
