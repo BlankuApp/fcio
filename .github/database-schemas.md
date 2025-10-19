@@ -90,3 +90,34 @@ create table public.decks (
   constraint decks_user_id_fkey foreign KEY (user_id) references auth.users (id)
 ) TABLESPACE pg_default;
 ```
+
+## deck_words
+```
+create table public.deck_words (
+  id uuid not null default gen_random_uuid (),
+  deck_id character varying not null,
+  word_id uuid not null,
+  state int4 not null default 1,
+  stability float4 not null default 0.0,
+  difficulty float4 not null default 0.0,
+  due timestamp with time zone not null default now(),
+  last_review timestamp with time zone null,
+  step int4 not null default 0,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now(),
+  constraint deck_words_pkey primary key (id),
+  constraint deck_words_deck_id_word_id_key unique (deck_id, word_id),
+  constraint deck_words_deck_id_fkey foreign key (deck_id) references decks (id) on delete cascade,
+  constraint deck_words_word_id_fkey foreign key (word_id) references words (id) on delete cascade
+) tablespace pg_default;
+
+create index if not exists deck_words_deck_id_idx on public.deck_words using btree (deck_id) tablespace pg_default;
+
+create index if not exists deck_words_word_id_idx on public.deck_words using btree (word_id) tablespace pg_default;
+
+create index if not exists deck_words_due_idx on public.deck_words using btree (due) tablespace pg_default;
+
+create trigger update_deck_words_updated_at before
+update on deck_words for each row
+execute function update_updated_at_column ();
+```
