@@ -11,6 +11,7 @@ import {
     ListWordsOptions,
     CollocationsPattern,
 } from "@/lib/types/words"
+import { PROFICIENCY_LEVELS } from "@/lib/constants/languages"
 
 /**
  * Create a new word entry
@@ -409,4 +410,63 @@ export async function bulkUpsertWords(inputs: CreateWordInput[]): Promise<Word[]
 
     if (error) throw new Error(`Failed to bulk upsert words: ${error.message}`)
     return (data as Word[]) || []
+}
+
+/**
+ * Get a random collocation from a word by ID and optional difficulty filter
+ * If the desired difficulty level has no collocations, falls back to lower difficulty levels
+ * @param wordId - The word ID to fetch
+ * @param difficulty - Optional difficulty level to filter by (e.g., "easy", "intermediate", "hard")
+ * @returns A random collocation string or null if no collocations found
+ */
+export async function getRandomCollocationByWordId(
+    wordId: string,
+    difficulty?: string
+): Promise<string | null> {
+    const word = await getWordById(wordId)
+
+    if (!word) {
+        return null
+    }
+
+    // Flatten all collocations into a single array
+    const allCollocations: Array<{ collocation: string; difficulty: string }> = []
+
+    Object.values(word.collocations).forEach((items) => {
+        allCollocations.push(...items)
+    })
+
+    if (allCollocations.length === 0) {
+        return null
+    }
+
+    // If no difficulty specified, return random from all
+    if (!difficulty) {
+        const randomIndex = Math.floor(Math.random() * allCollocations.length)
+        return allCollocations[randomIndex].collocation
+    }
+
+    // Get difficulty levels in order from PROFICIENCY_LEVELS
+    const difficultyLevels = PROFICIENCY_LEVELS.map((level) => level.value)
+    const normalizedRequestedDifficulty = difficulty.toLowerCase()
+
+    // Find the index of requested difficulty in the levels array
+    const requestedIndex = difficultyLevels.indexOf(normalizedRequestedDifficulty)
+    const startIndex = requestedIndex !== -1 ? requestedIndex : difficultyLevels.length - 1
+
+    // Try each difficulty level from requested onwards through the list
+    for (let i = startIndex; i < difficultyLevels.length; i++) {
+        const currentDifficulty = difficultyLevels[i]
+        const filteredCollocations = allCollocations.filter(
+            (item) => item.difficulty.toLowerCase() === currentDifficulty
+        )
+
+        if (filteredCollocations.length > 0) {
+            const randomIndex = Math.floor(Math.random() * filteredCollocations.length)
+            return filteredCollocations[randomIndex].collocation
+        }
+    }
+
+    // If no collocation found at any difficulty level, return null
+    return null
 }
