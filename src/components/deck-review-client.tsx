@@ -1,0 +1,121 @@
+"use client"
+
+import { Loader2 } from "lucide-react"
+import { useReviewCards } from "@/lib/review/hooks/useReviewCards"
+import { useReviewQuestion } from "@/lib/review/hooks/useReviewQuestion"
+import { useReviewAnswer } from "@/lib/review/hooks/useReviewAnswer"
+import { ProgressBar } from "@/components/deck-review/ProgressBar"
+import { QuestionCard } from "@/components/deck-review/QuestionCard"
+import { HintAccordion } from "@/components/deck-review/HintAccordion"
+import { AnswerInput } from "@/components/deck-review/AnswerInput"
+import { AIReviewCard } from "@/components/deck-review/AIReviewCard"
+import { DifficultySelector } from "@/components/deck-review/DifficultySelector"
+import { ReviewCompleteCard } from "@/components/deck-review/ReviewCompleteCard"
+import { ErrorCard } from "@/components/deck-review/ErrorCard"
+
+interface DeckReviewClientProps {
+  deckId: string
+  queLanguage: string
+}
+
+export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps) {
+  const {
+    cards,
+    isLoadingCards,
+    loadError,
+    currentCardIndex,
+    setCurrentCardIndex,
+    isReviewComplete,
+  } = useReviewCards(deckId)
+
+  const currentCard = cards[currentCardIndex]
+  const { questionData, isLoadingQuestion } = useReviewQuestion(
+    currentCard,
+    currentCardIndex
+  )
+
+  const {
+    userAnswer,
+    setUserAnswer,
+    aiReview,
+    selectedDifficulty,
+    isLoading: isReviewingAnswer,
+    isSubmittingReview,
+    submitAnswer,
+    selectDifficulty,
+    submitResult,
+    resetAnswer,
+  } = useReviewAnswer()
+
+  // Loading cards state
+  if (isLoadingCards) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // Error or no cards state
+  if (loadError || cards.length === 0) {
+    return <ErrorCard error={loadError} isEmpty={cards.length === 0} />
+  }
+
+  // Review complete state
+  if (isReviewComplete) {
+    return <ReviewCompleteCard cardCount={cards.length} />
+  }
+
+  // Handle submit answer
+  const handleSubmitAnswer = async () => {
+    if (!questionData) return
+    await submitAnswer(questionData, userAnswer)
+  }
+
+  // Handle submit result and move to next card
+  const handleSubmitResult = async () => {
+    if (!selectedDifficulty || !currentCard) return
+
+    await submitResult(currentCard.id, selectedDifficulty)
+
+    // Move to next card
+    const nextIndex = currentCardIndex + 1
+    setCurrentCardIndex(nextIndex)
+    resetAnswer()
+  }
+
+  // Main review interface
+  return (
+    <div className="space-y-6">
+      <ProgressBar currentIndex={currentCardIndex} total={cards.length} />
+
+      <QuestionCard
+        question={questionData?.lemma}
+        isLoading={isLoadingQuestion}
+        language={queLanguage}
+      />
+
+      <HintAccordion hint={questionData?.hint} />
+
+      <AnswerInput
+        value={userAnswer}
+        onChange={setUserAnswer}
+        onSubmit={handleSubmitAnswer}
+        isLoading={isReviewingAnswer}
+        isDisabled={isLoadingQuestion}
+        hasReview={aiReview !== null}
+      />
+
+      <AIReviewCard review={aiReview} isLoading={isReviewingAnswer} />
+
+      {aiReview && (
+        <DifficultySelector
+          selectedDifficulty={selectedDifficulty}
+          onSelectDifficulty={selectDifficulty}
+          onSubmit={handleSubmitResult}
+          isLoading={isSubmittingReview}
+        />
+      )}
+    </div>
+  )
+}

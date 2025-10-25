@@ -5,6 +5,14 @@
 import type { ProficiencyLevel } from "@/lib/constants/languages"
 
 /**
+ * AI prompts for deck review and other AI features
+ */
+export interface AIPrompts {
+    review?: string                    // AI prompt for review mode
+    [key: string]: string | undefined  // Allow additional prompt types
+}
+
+/**
  * Represents a deck record from the database
  * Deck ID follows YouTube ID format (11 character alphanumeric string)
  */
@@ -15,6 +23,7 @@ export interface Deck {
     que_lang: string                   // Question language code (e.g., "en", "es", "ja")
     ans_langs: string[]                // Array of answer language codes (e.g., ["es", "ja"])
     diff_level: ProficiencyLevel["value"] // One of the 6 proficiency levels
+    ai_prompts: AIPrompts | null       // JSON data containing AI prompts (e.g., {"review": "prompt..."})
     created_at: string                 // ISO timestamp
     updated_at: string                 // ISO timestamp
 }
@@ -32,6 +41,7 @@ export interface CreateDeckInput {
     que_lang: string             // Question language code
     ans_langs: string[]          // Array of answer language codes
     diff_level: DifficultyLevel  // Difficulty level
+    ai_prompts?: AIPrompts       // Optional: AI prompts for the deck
 }
 
 /**
@@ -42,6 +52,7 @@ export interface UpdateDeckInput {
     que_lang?: string            // Optional: update question language
     ans_langs?: string[]         // Optional: update answer languages
     diff_level?: DifficultyLevel // Optional: update difficulty level
+    ai_prompts?: AIPrompts       // Optional: update AI prompts
 }
 
 /**

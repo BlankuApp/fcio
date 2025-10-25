@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"D:\\NextJSTuts\\fcio\\src\\app\\api\\review\"\" 2>&1 | grep -E \".ts)",
+      "Bash(.js\" || echo \"Checking directory structure \")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

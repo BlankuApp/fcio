@@ -5,10 +5,13 @@ import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Loader2 } from "lucide-react"
-import { getDeckById } from "@/lib/decks/client-utils"
+import { toast } from "sonner"
+import { ArrowLeft, Loader2, Edit2, Save, X } from "lucide-react"
+import { getDeckById, deleteDeck, updateDeck } from "@/lib/decks/client-utils"
 import { getLanguageByCode, getLanguageDisplayName, PROFICIENCY_LEVELS, type Language } from "@/lib/constants/languages"
 import { DeckWordsClient } from "@/components/deck-words-client"
+import { Textarea } from "@/components/ui/textarea"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import type { Deck } from "@/lib/types/deck"
 
 export default function DeckPage() {
@@ -19,6 +22,11 @@ export default function DeckPage() {
     const [deck, setDeck] = useState<Deck | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
+    const [isEditingPrompt, setIsEditingPrompt] = useState(false)
+    const [editedPrompt, setEditedPrompt] = useState("")
+    const [isSavingPrompt, setIsSavingPrompt] = useState(false)
+    const [isPromptOpen, setIsPromptOpen] = useState(false)
 
     useEffect(() => {
         const loadDeck = async () => {
@@ -42,6 +50,59 @@ export default function DeckPage() {
 
         loadDeck()
     }, [deckId])
+
+    const handleDeleteDeck = async () => {
+        if (!deck) return
+
+        // Confirm deletion
+        const confirmed = window.confirm(
+            `Are you sure you want to delete "${deck.name}"? This action cannot be undone.`
+        )
+
+        if (!confirmed) return
+
+        try {
+            setIsDeleting(true)
+            await deleteDeck(deck.id)
+            toast.success("Deck deleted successfully")
+            router.push("/decks")
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to delete deck")
+        } finally {
+            setIsDeleting(false)
+        }
+    }
+
+    const handleEditPrompt = () => {
+        setEditedPrompt(deck?.ai_prompts?.review || "")
+        setIsEditingPrompt(true)
+    }
+
+    const handleCancelEdit = () => {
+        setIsEditingPrompt(false)
+        setEditedPrompt("")
+    }
+
+    const handleSavePrompt = async () => {
+        if (!deck) return
+
+        try {
+            setIsSavingPrompt(true)
+            const updatedDeck = await updateDeck(deck.id, {
+                ai_prompts: {
+                    ...deck.ai_prompts,
+                    review: editedPrompt
+                }
+            })
+            setDeck(updatedDeck)
+            setIsEditingPrompt(false)
+            toast.success("AI prompt updated successfully")
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update AI prompt")
+        } finally {
+            setIsSavingPrompt(false)
+        }
+    }
 
     if (isLoading) {
         return (
@@ -76,7 +137,7 @@ export default function DeckPage() {
     } else if (typeof deck.ans_langs === 'string') {
         try {
             ansLangsArray = JSON.parse(deck.ans_langs);
-        } catch (e) {
+        } catch {
             // Optionally log the error for debugging
             // console.error("Failed to parse ans_langs JSON:", e);
             ansLangsArray = [];
@@ -154,6 +215,78 @@ export default function DeckPage() {
                         </div>
                     </div>
 
+                    {/* AI Prompt */}
+                    <div className="pt-4 border-t">
+                        <Collapsible open={isPromptOpen} onOpenChange={setIsPromptOpen}>
+                            <div className="flex items-center justify-between mb-3">
+                                <CollapsibleTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="p-0 h-auto font-semibold text-sm text-muted-foreground hover:text-foreground">
+                                        AI Review Prompt
+                                        <span className="ml-2 text-xs">
+                                            {isPromptOpen ? "▼" : "▶"}
+                                        </span>
+                                    </Button>
+                                </CollapsibleTrigger>
+                                {!isEditingPrompt && isPromptOpen && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleEditPrompt}
+                                    >
+                                        <Edit2 className="w-4 h-4 mr-2" />
+                                        Edit
+                                    </Button>
+                                )}
+                            </div>
+                            <CollapsibleContent>
+                                {isEditingPrompt ? (
+                                    <div className="space-y-3">
+                                        <Textarea
+                                            value={editedPrompt}
+                                            onChange={(e) => setEditedPrompt(e.target.value)}
+                                            className="min-h-[300px] font-mono text-sm"
+                                            placeholder="Enter AI prompt for generating review questions..."
+                                        />
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={handleSavePrompt}
+                                                disabled={isSavingPrompt}
+                                                size="sm"
+                                            >
+                                                {isSavingPrompt ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Saving...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Save className="w-4 h-4 mr-2" />
+                                                        Save
+                                                    </>
+                                                )}
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleCancelEdit}
+                                                disabled={isSavingPrompt}
+                                                size="sm"
+                                            >
+                                                <X className="w-4 h-4 mr-2" />
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-muted/50 p-4 rounded-md">
+                                        <pre className="whitespace-pre-wrap text-sm font-mono">
+                                            {deck.ai_prompts?.review || "No prompt set"}
+                                        </pre>
+                                    </div>
+                                )}
+                            </CollapsibleContent>
+                        </Collapsible>
+                    </div>
+
                     {/* Metadata */}
                     <div className="pt-4 border-t">
                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -170,14 +303,28 @@ export default function DeckPage() {
 
                     {/* Action Buttons */}
                     <div className="flex gap-3 pt-4">
-                        <Button variant="default">
+                        <Button
+                            variant="default"
+                            onClick={() => router.push(`/decks/${deck.id}/review`)}
+                        >
                             Start Practice
                         </Button>
                         <Button variant="outline">
                             Edit Deck
                         </Button>
-                        <Button variant="destructive">
-                            Delete Deck
+                        <Button
+                            variant="destructive"
+                            onClick={handleDeleteDeck}
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                "Delete Deck"
+                            )}
                         </Button>
                     </div>
                 </CardContent>
