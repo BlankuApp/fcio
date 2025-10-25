@@ -12,6 +12,16 @@ import { getLanguageByCode, getLanguageDisplayName, PROFICIENCY_LEVELS, type Lan
 import { DeckWordsClient } from "@/components/deck-words-client"
 import { Textarea } from "@/components/ui/textarea"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import type { Deck } from "@/lib/types/deck"
 
 export default function DeckPage() {
@@ -27,6 +37,7 @@ export default function DeckPage() {
     const [editedPrompt, setEditedPrompt] = useState("")
     const [isSavingPrompt, setIsSavingPrompt] = useState(false)
     const [isPromptOpen, setIsPromptOpen] = useState(false)
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
     useEffect(() => {
         const loadDeck = async () => {
@@ -54,15 +65,9 @@ export default function DeckPage() {
     const handleDeleteDeck = async () => {
         if (!deck) return
 
-        // Confirm deletion
-        const confirmed = window.confirm(
-            `Are you sure you want to delete "${deck.name}"? This action cannot be undone.`
-        )
-
-        if (!confirmed) return
-
         try {
             setIsDeleting(true)
+            setShowDeleteDialog(false)
             await deleteDeck(deck.id)
             toast.success("Deck deleted successfully")
             router.push("/decks")
@@ -314,7 +319,7 @@ export default function DeckPage() {
                         </Button>
                         <Button
                             variant="destructive"
-                            onClick={handleDeleteDeck}
+                            onClick={() => setShowDeleteDialog(true)}
                             disabled={isDeleting}
                         >
                             {isDeleting ? (
@@ -332,6 +337,27 @@ export default function DeckPage() {
 
             {/* Words Table */}
             <DeckWordsClient languageCode={deck.que_lang} deckId={deck.id} />
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Deck</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete &quot;{deck.name}&quot;? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteDeck}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

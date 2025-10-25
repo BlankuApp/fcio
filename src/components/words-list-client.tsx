@@ -12,6 +12,16 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { DataTable } from "@/components/ui/data-table"
 import { listWords, updateWord, deleteWord } from "@/lib/words/client-utils"
 import { getTagsForWord, addTagToWord, removeTagFromWord } from "@/lib/tags/client-utils"
@@ -145,6 +155,7 @@ export function WordsListClient({
 }: WordsListClientProps) {
     const [words, setWords] = useState<WordWithTags[]>(initialWords)
     const [loading, setLoading] = useState(initialWords.length === 0)
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
     // Use custom hook for word editor state management
     const [editorState, editorActions] = useWordEditor()
@@ -256,17 +267,17 @@ export function WordsListClient({
         }
     }
 
-    const handleDeleteWord = async () => {
-        if (
-            !editorState.selectedWord ||
-            !window.confirm(
-                `Are you sure you want to delete "${editorState.selectedWord.lemma}"?`
-            )
-        )
-            return
+    const handleDeleteClick = () => {
+        if (!editorState.selectedWord) return
+        setShowDeleteDialog(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (!editorState.selectedWord) return
 
         try {
             editorActions.setDeleting(true)
+            setShowDeleteDialog(false)
             await deleteWord(editorState.selectedWord.id)
             setWords((prev) =>
                 prev.filter((w) => w.id !== editorState.selectedWord!.id)
@@ -346,10 +357,31 @@ export function WordsListClient({
                     onRemoveCollocation={editorActions.removeCollocation}
                     onUpdateCollocation={editorActions.updateCollocation}
                     onSave={handleSaveWord}
-                    onDelete={handleDeleteWord}
+                    onDelete={handleDeleteClick}
                     wordTags={editorState.wordTags}
                     onTagsChange={editorActions.setWordTags}
                 />
+
+                {/* Delete Confirmation Dialog */}
+                <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Word</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Are you sure you want to delete &quot;{editorState.selectedWord?.lemma}&quot;? This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={handleDeleteConfirm}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                                Delete
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </div>
     )
