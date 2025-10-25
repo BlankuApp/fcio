@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npx shadcn@latest add alert-dialog:*)",
-      "Bash(npx shadcn@latest add:*)"
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(powershell -Command \"if (Test-Path ''.next'') { Remove-Item -Path ''.next'' -Recurse -Force }\")",
+      "Bash(cmd /c \"rd /s /q .next 2>nul || echo Cleaning cache...\")"
     ],
     "deny": [],
     "ask": []
