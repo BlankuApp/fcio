@@ -18,10 +18,21 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { Edit2, Plus, Trash2, X } from "lucide-react"
+import { Edit2, Plus, Trash2, X, Check } from "lucide-react"
 import { LANGUAGES, PROFICIENCY_LEVELS } from "@/lib/constants/languages"
 import { useEffect, useState } from "react"
 import { listTags } from "@/lib/tags/client-utils"
+import {
+    Tags,
+    TagsTrigger,
+    TagsValue,
+    TagsContent,
+    TagsInput,
+    TagsList,
+    TagsEmpty,
+    TagsGroup,
+    TagsItem,
+} from "@/components/ui/shadcn-io/tags"
 import type { Word, Collocation } from "@/lib/types/words"
 import type { Tag } from "@/lib/types/tags"
 
@@ -245,24 +256,52 @@ export function WordEditDialog({
                     {/* Tags */}
                     <div>
                         <label className="text-sm font-medium mb-2 block">Tags</label>
-                        <div className="flex flex-wrap gap-2 p-3 border rounded-md bg-muted/50 min-h-[44px]">
-                            {isLoadingTags ? (
+                        {isLoadingTags ? (
+                            <div className="p-3 border rounded-md bg-muted/50">
                                 <span className="text-sm text-muted-foreground">Loading tags...</span>
-                            ) : availableTags.length === 0 ? (
+                            </div>
+                        ) : availableTags.length === 0 ? (
+                            <div className="p-3 border rounded-md bg-muted/50">
                                 <span className="text-sm text-muted-foreground">No tags available</span>
-                            ) : (
-                                availableTags.map((tag) => (
-                                    <Badge
-                                        key={tag.id}
-                                        variant={selectedTags.has(tag.id) ? "default" : "outline"}
-                                        className={isEditing ? "cursor-pointer" : ""}
-                                        onClick={() => isEditing && toggleTagSelection(tag.id)}
-                                    >
-                                        {tag.name}
-                                    </Badge>
-                                ))
-                            )}
-                        </div>
+                            </div>
+                        ) : (
+                            <Tags>
+                                <TagsTrigger disabled={!isEditing}>
+                                    {Array.from(selectedTags).map((tagId) => {
+                                        const tag = availableTags.find(t => t.id === tagId)
+                                        if (!tag) return null
+                                        return (
+                                            <TagsValue
+                                                key={tag.id}
+                                                onRemove={isEditing ? () => toggleTagSelection(tag.id) : undefined}
+                                            >
+                                                {tag.name}
+                                            </TagsValue>
+                                        )
+                                    })}
+                                </TagsTrigger>
+                                <TagsContent>
+                                    <TagsInput placeholder="Search tags..." />
+                                    <TagsList>
+                                        <TagsEmpty>No tags found.</TagsEmpty>
+                                        <TagsGroup>
+                                            {availableTags.map((tag) => (
+                                                <TagsItem
+                                                    key={tag.id}
+                                                    value={tag.name}
+                                                    onSelect={() => toggleTagSelection(tag.id)}
+                                                >
+                                                    <span>{tag.name}</span>
+                                                    {selectedTags.has(tag.id) && (
+                                                        <Check className="h-4 w-4" />
+                                                    )}
+                                                </TagsItem>
+                                            ))}
+                                        </TagsGroup>
+                                    </TagsList>
+                                </TagsContent>
+                            </Tags>
+                        )}
                         {selectedTags.size > 0 && (
                             <p className="text-xs text-muted-foreground mt-2">
                                 {selectedTags.size} tag(s) selected

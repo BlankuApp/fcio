@@ -23,6 +23,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import type { Deck } from "@/lib/types/deck"
+import { PageHeader } from "@/components/page-header"
 
 export default function DeckPage() {
     const params = useParams()
@@ -158,11 +159,18 @@ export default function DeckPage() {
     )
 
     return (
-        <div className="flex flex-col gap-6 p-6">
-            <Button variant="outline" onClick={() => router.back()} className="w-fit">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-            </Button>
+        <>
+            <PageHeader
+                breadcrumbs={[
+                    { label: "Decks", href: "/decks" },
+                    { label: deck.name }
+                ]}
+            />
+            <div className="flex flex-col gap-6 p-6">
+                <Button variant="outline" onClick={() => router.back()} className="w-fit">
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                </Button>
 
             <Card>
                 <CardHeader>
@@ -359,5 +367,6 @@ export default function DeckPage() {
                 </AlertDialogContent>
             </AlertDialog>
         </div>
+        </>
     )
 }

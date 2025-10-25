@@ -18,6 +18,7 @@ import { LANGUAGES, PROFICIENCY_LEVELS } from "@/lib/constants/languages"
 import { createDeck } from "@/lib/decks/client-utils"
 import { getCurrentUser } from "@/lib/auth/utils"
 import type { CreateDeckInput } from "@/lib/types/deck"
+import { PageHeader } from "@/components/page-header"
 
 export default function NewDeckPage() {
     const router = useRouter()
@@ -98,13 +99,20 @@ export default function NewDeckPage() {
     }
 
     return (
-        <div className="flex flex-col gap-6 p-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Create New Deck</h1>
-                <p className="text-muted-foreground mt-2">
-                    Create a new flashcard deck to practice language learning
-                </p>
-            </div>
+        <>
+            <PageHeader
+                breadcrumbs={[
+                    { label: "Decks", href: "/decks" },
+                    { label: "New Deck" }
+                ]}
+            />
+            <div className="flex flex-col gap-6 p-6">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Create New Deck</h1>
+                    <p className="text-muted-foreground mt-2">
+                        Create a new flashcard deck to practice language learning
+                    </p>
+                </div>
 
             <Card className="w-full max-w-2xl">
                 <CardHeader>
@@ -241,5 +249,6 @@ export default function NewDeckPage() {
                 </CardContent>
             </Card>
         </div>
+        </>
     )
 }
