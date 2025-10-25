@@ -5,6 +5,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import type { Deck, CreateDeckInput, UpdateDeckInput, ListDecksOptions } from "@/lib/types/deck"
+import { getDefaultAIPrompts } from "@/lib/constants/ai-prompts"
 
 /**
  * Generate a YouTube-like ID (11 character alphanumeric string)
@@ -52,6 +53,7 @@ export async function createDeck(userId: string, input: CreateDeckInput): Promis
                 que_lang: input.que_lang,
                 ans_langs: ansLangs,
                 diff_level: input.diff_level,
+                ai_prompts: input.ai_prompts || getDefaultAIPrompts(),
             },
         ])
         .select()
@@ -165,6 +167,11 @@ export async function updateDeck(id: string, userId: string, updates: UpdateDeck
             }
         }
         processedUpdates.ans_langs = ansLangs
+    }
+
+    // Include ai_prompts if provided
+    if (updates.ai_prompts !== undefined) {
+        processedUpdates.ai_prompts = updates.ai_prompts
     }
 
     const { data, error } = await supabase

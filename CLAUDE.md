@@ -149,9 +149,11 @@ deletes)
    user_id: string                    // Links to auth.users.id
    name: string                       // Deck name (max 50 chars)
    que_lang: string                   // Question language code
-   ans_langs: string[]                // Array of answer language 
+   ans_langs: string[]                // Array of answer language
 codes
    diff_level: ProficiencyLevel       // Difficulty level
+   ai_prompts: AIPrompts | null       // JSON: AI prompts for deck
+features (e.g., {"review": "prompt..."})
    created_at: string
    updated_at: string
  }
@@ -272,10 +274,24 @@ array of language codes)
  5 proficiency levels
  
  ### Deck ID Generation
- - Uses YouTube-like IDs: 11 character alphanumeric strings 
+ - Uses YouTube-like IDs: 11 character alphanumeric strings
 (`A-Za-z0-9-_`)
  - Generated via `generateDeckId()` in `@/lib/decks/client-utils.ts`
- 
+
+ ### AI Prompts for Decks
+ - Each deck has an `ai_prompts` field (JSONB) for customizable AI
+prompts
+ - Default prompts defined in `src/lib/constants/ai-prompts.ts`
+ - **Default Review Prompt**: Template for generating flashcard
+questions with AI
+   - Uses template variables: `${questionLanguage}`,
+`${answerLangsArray}`, `${word}`, `${collocation}`, `${difficulty}`
+   - Automatically applied to new decks via `getDefaultAIPrompts()`
+ - Prompts can be customized per deck by passing `ai_prompts` in
+`CreateDeckInput`
+ - Structure: `{"review": "prompt text...", [otherFeature]:
+"prompt..."}`
+
  ## Environment Setup
  
  Required `.env.local`:
@@ -378,13 +394,15 @@ validate array type before `.from().insert()`
  Use `@/` prefix for all imports from `src/` directory.
  
  ## Key Files Reference
- 
+
  - Layout: `src/app/layout.tsx` (SidebarProvider + Toaster wrapper)
  - Auth middleware: `src/middleware.ts` (admin protection)
- - Admin guard: `src/lib/user-profile/server-utils.ts` 
+ - Admin guard: `src/lib/user-profile/server-utils.ts`
 (`requireAdmin()`)
- - Type definitions: `src/lib/types/` (user-profile, words, tags, 
+ - Type definitions: `src/lib/types/` (user-profile, words, tags,
 deck, deck-words)
  - Language constants: `src/lib/constants/languages.ts`
- - Supabase clients: `src/lib/supabase/client.ts` and 
+ - AI prompts constants: `src/lib/constants/ai-prompts.ts` (default
+prompts for deck features)
+ - Supabase clients: `src/lib/supabase/client.ts` and
 `src/lib/supabase/server.ts`
