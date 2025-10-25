@@ -10,6 +10,7 @@ import { useState } from "react"
 import { LANGUAGES, getLanguageDisplayName } from "@/lib/constants/languages"
 import { generateJsonlContent } from "@/lib/ai/batch-request-builder"
 import { downloadAsJsonl, getJsonlLineCount } from "@/lib/utils/file-download"
+import { PageHeader } from "@/components/page-header"
 
 export default function GenerateWordsPage() {
     const [wordList, setWordList] = useState("")
@@ -88,8 +89,15 @@ export default function GenerateWordsPage() {
     }
 
     return (
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-            <div className="flex items-center gap-3 mt-4">
+        <>
+            <PageHeader
+                breadcrumbs={[
+                    { label: "Words", href: "/words/list" },
+                    { label: "Generate JSONL" }
+                ]}
+            />
+            <div className="flex flex-1 flex-col gap-4 p-4">
+                <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                     <DownloadCloud className="h-6 w-6 text-primary" />
                 </div>
@@ -187,5 +195,6 @@ export default function GenerateWordsPage() {
                 )}
             </div>
         </div>
+        </>
     )
 }

@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/user-profile/server-utils"
 import { listTagsServer } from "@/lib/tags"
 import { TagsManagementClient } from "@/components/tags-management-client"
 import type { Tag } from "@/lib/types/tags"
+import { PageHeader } from "@/components/page-header"
 
 /**
  * Server Component: Tags Management Page
@@ -38,5 +39,15 @@ export default async function TagsManagementPage() {
         // Continue with empty list - client will load data
     }
 
-    return <TagsManagementClient initialTags={initialTags} userId={user.id} />
+    return (
+        <>
+            <PageHeader
+                breadcrumbs={[
+                    { label: "Words", href: "/words/list" },
+                    { label: "Tags" }
+                ]}
+            />
+            <TagsManagementClient initialTags={initialTags} userId={user.id} />
+        </>
+    )
 }

@@ -1,8 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls -la \"D:\\NextJSTuts\\fcio\\src\\app\\api\\review\"\" 2>&1 | grep -E \".ts)",
-      "Bash(.js\" || echo \"Checking directory structure \")"
+      "Bash(npx shadcn@latest add alert-dialog:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(powershell -Command \"if (Test-Path ''.next'') { Remove-Item -Path ''.next'' -Recurse -Force }\")",
+      "Bash(cmd /c \"rd /s /q .next 2>nul || echo Cleaning cache...\")"
     ],
     "deny": [],
     "ask": []

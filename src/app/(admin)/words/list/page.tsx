@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/user-profile/server-utils"
 import { listWords } from "@/lib/words/server-utils"
 import { WordsListClient } from "@/components/words-list-client"
 import type { Word } from "@/lib/types/words"
+import { PageHeader } from "@/components/page-header"
 
 /**
  * Server Component: Words List Page
@@ -40,5 +41,15 @@ export default async function WordsListPage() {
         // Continue with empty list - client will load data
     }
 
-    return <WordsListClient initialWords={initialWords} />
+    return (
+        <>
+            <PageHeader
+                breadcrumbs={[
+                    { label: "Words", href: "/words/list" },
+                    { label: "List" }
+                ]}
+            />
+            <WordsListClient initialWords={initialWords} />
+        </>
+    )
 }

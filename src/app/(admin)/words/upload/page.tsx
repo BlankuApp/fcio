@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { UploadCloud } from "lucide-react"
+import { UploadCloud, Check } from "lucide-react"
 import { useState, useEffect } from "react"
 import { bulkUpsertWords, checkExistingWords } from "@/lib/words/client-utils"
 import { LANGUAGES } from "@/lib/constants/languages"
@@ -21,13 +21,24 @@ import { SelectionToolbar } from "@/components/selection-toolbar"
 import { AlertDialog } from "@/components/alert-dialog"
 import { useResultSelection } from "@/hooks/use-result-selection"
 import { useAlert } from "@/hooks/use-alert"
-import { Badge } from "@/components/ui/badge"
+import {
+    Tags,
+    TagsTrigger,
+    TagsValue,
+    TagsContent,
+    TagsInput,
+    TagsList,
+    TagsEmpty,
+    TagsGroup,
+    TagsItem,
+} from "@/components/ui/shadcn-io/tags"
 import {
     parseBatchFile,
     detectLanguageFromFilename,
     filterValidResults,
 } from "@/lib/words/parse-batch-results"
 import { listTags, addTagToWord } from "@/lib/tags/client-utils"
+import { PageHeader } from "@/components/page-header"
 
 export default function UploadWordsPage() {
     const [uploadedFile, setUploadedFile] = useState<File | null>(null)
@@ -235,8 +246,14 @@ export default function UploadWordsPage() {
 
     return (
         <>
-            <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                <div className="flex items-center gap-3 mt-4">
+            <PageHeader
+                breadcrumbs={[
+                    { label: "Words", href: "/words/list" },
+                    { label: "Upload Results" }
+                ]}
+            />
+            <div className="flex flex-1 flex-col gap-4 p-4">
+                <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                         <UploadCloud className="h-6 w-6 text-primary" />
                     </div>
@@ -293,24 +310,52 @@ export default function UploadWordsPage() {
 
                             <div>
                                 <label className="text-sm font-medium mb-2 block">Tags (Optional)</label>
-                                <div className="flex flex-wrap gap-2 p-3 border rounded-md bg-muted/50 min-h-[44px]">
-                                    {isLoadingTags ? (
+                                {isLoadingTags ? (
+                                    <div className="p-3 border rounded-md bg-muted/50">
                                         <span className="text-sm text-muted-foreground">Loading tags...</span>
-                                    ) : availableTags.length === 0 ? (
+                                    </div>
+                                ) : availableTags.length === 0 ? (
+                                    <div className="p-3 border rounded-md bg-muted/50">
                                         <span className="text-sm text-muted-foreground">No tags available</span>
-                                    ) : (
-                                        availableTags.map((tag) => (
-                                            <Badge
-                                                key={tag.id}
-                                                variant={selectedTags.has(tag.id) ? "default" : "outline"}
-                                                className="cursor-pointer"
-                                                onClick={() => toggleTagSelection(tag.id)}
-                                            >
-                                                {tag.name}
-                                            </Badge>
-                                        ))
-                                    )}
-                                </div>
+                                    </div>
+                                ) : (
+                                    <Tags>
+                                        <TagsTrigger>
+                                            {Array.from(selectedTags).map((tagId) => {
+                                                const tag = availableTags.find(t => t.id === tagId)
+                                                if (!tag) return null
+                                                return (
+                                                    <TagsValue
+                                                        key={tag.id}
+                                                        onRemove={() => toggleTagSelection(tag.id)}
+                                                    >
+                                                        {tag.name}
+                                                    </TagsValue>
+                                                )
+                                            })}
+                                        </TagsTrigger>
+                                        <TagsContent>
+                                            <TagsInput placeholder="Search tags..." />
+                                            <TagsList>
+                                                <TagsEmpty>No tags found.</TagsEmpty>
+                                                <TagsGroup>
+                                                    {availableTags.map((tag) => (
+                                                        <TagsItem
+                                                            key={tag.id}
+                                                            value={tag.name}
+                                                            onSelect={() => toggleTagSelection(tag.id)}
+                                                        >
+                                                            <span>{tag.name}</span>
+                                                            {selectedTags.has(tag.id) && (
+                                                                <Check className="h-4 w-4" />
+                                                            )}
+                                                        </TagsItem>
+                                                    ))}
+                                                </TagsGroup>
+                                            </TagsList>
+                                        </TagsContent>
+                                    </Tags>
+                                )}
                                 {selectedTags.size > 0 && (
                                     <p className="text-xs text-muted-foreground mt-2">
                                         {selectedTags.size} tag(s) selected

@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/user-profile/server-utils'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Users, BookOpen, Settings, BarChart, Shield } from 'lucide-react'
+import { PageHeader } from '@/components/page-header'
 
 export default async function AdminDashboardPage() {
     // Check if user is authenticated and is admin
@@ -21,9 +22,11 @@ export default async function AdminDashboardPage() {
     }
 
     return (
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 mt-4">
+        <>
+            <PageHeader title="Admin Dashboard" />
+            <div className="flex flex-1 flex-col gap-4 p-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                         <Shield className="h-6 w-6 text-primary" />
                     </div>
@@ -165,5 +168,6 @@ export default async function AdminDashboardPage() {
                 </Card>
             </div>
         </div>
+        </>
     )
 }

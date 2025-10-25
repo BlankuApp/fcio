@@ -97,9 +97,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold hover:text-primary transition-colors px-2 py-2">
-          <BotMessageSquare className="w-5 h-5" />
-          <span>AI FlashCards</span>
+        <Link href="/" className="flex items-center gap-2 text-lg font-semibold hover:text-primary transition-colors px-2 py-2 group-data-[collapsible=icon]:justify-center">
+          <BotMessageSquare className="w-5 h-5 shrink-0" />
+          <span className="group-data-[collapsible=icon]:hidden">AI FlashCards</span>
         </Link>
       </SidebarHeader>
       <SidebarContent>
