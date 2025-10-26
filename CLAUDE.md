@@ -282,15 +282,20 @@ array of language codes)
  - Each deck has an `ai_prompts` field (JSONB) for customizable AI
 prompts
  - Default prompts defined in `src/lib/constants/ai-prompts.ts`
- - **Default Review Prompt**: Template for generating flashcard
+ - **Default Question Prompt**: Template for generating flashcard
 questions with AI
    - Uses template variables: `${questionLanguage}`,
 `${answerLangsArray}`, `${word}`, `${collocation}`, `${difficulty}`
-   - Automatically applied to new decks via `getDefaultAIPrompts()`
+   - Creates sentence-based flashcards with hints and translations
+ - **Default Review Prompt**: Template for reviewing student answers
+   - Uses template variables: `${difficulty}`, `${wordLemma}`,
+`${question}`, `${userAnswer}`, `${expectedAnswer}`
+   - Provides constructive feedback and scoring (0-10)
+ - Automatically applied to new decks via `getDefaultAIPrompts()`
  - Prompts can be customized per deck by passing `ai_prompts` in
 `CreateDeckInput`
- - Structure: `{"review": "prompt text...", [otherFeature]:
-"prompt..."}`
+ - Structure: `{"question": "prompt text...", "review": "prompt
+text...", [otherFeature]: "prompt..."}`
 
  ## Environment Setup
  

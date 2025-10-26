@@ -34,10 +34,13 @@ export default function DeckPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
-    const [isEditingPrompt, setIsEditingPrompt] = useState(false)
-    const [editedPrompt, setEditedPrompt] = useState("")
+    const [isEditingQuestionPrompt, setIsEditingQuestionPrompt] = useState(false)
+    const [isEditingReviewPrompt, setIsEditingReviewPrompt] = useState(false)
+    const [editedQuestionPrompt, setEditedQuestionPrompt] = useState("")
+    const [editedReviewPrompt, setEditedReviewPrompt] = useState("")
     const [isSavingPrompt, setIsSavingPrompt] = useState(false)
-    const [isPromptOpen, setIsPromptOpen] = useState(false)
+    const [isQuestionPromptOpen, setIsQuestionPromptOpen] = useState(false)
+    const [isReviewPromptOpen, setIsReviewPromptOpen] = useState(false)
     const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
     useEffect(() => {
@@ -79,17 +82,27 @@ export default function DeckPage() {
         }
     }
 
-    const handleEditPrompt = () => {
-        setEditedPrompt(deck?.ai_prompts?.review || "")
-        setIsEditingPrompt(true)
+    const handleEditQuestionPrompt = () => {
+        setEditedQuestionPrompt(deck?.ai_prompts?.question || "")
+        setIsEditingQuestionPrompt(true)
     }
 
-    const handleCancelEdit = () => {
-        setIsEditingPrompt(false)
-        setEditedPrompt("")
+    const handleEditReviewPrompt = () => {
+        setEditedReviewPrompt(deck?.ai_prompts?.review || "")
+        setIsEditingReviewPrompt(true)
     }
 
-    const handleSavePrompt = async () => {
+    const handleCancelQuestionEdit = () => {
+        setIsEditingQuestionPrompt(false)
+        setEditedQuestionPrompt("")
+    }
+
+    const handleCancelReviewEdit = () => {
+        setIsEditingReviewPrompt(false)
+        setEditedReviewPrompt("")
+    }
+
+    const handleSaveQuestionPrompt = async () => {
         if (!deck) return
 
         try {
@@ -97,14 +110,35 @@ export default function DeckPage() {
             const updatedDeck = await updateDeck(deck.id, {
                 ai_prompts: {
                     ...deck.ai_prompts,
-                    review: editedPrompt
+                    question: editedQuestionPrompt
                 }
             })
             setDeck(updatedDeck)
-            setIsEditingPrompt(false)
-            toast.success("AI prompt updated successfully")
+            setIsEditingQuestionPrompt(false)
+            toast.success("Question prompt updated successfully")
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Failed to update AI prompt")
+            toast.error(err instanceof Error ? err.message : "Failed to update question prompt")
+        } finally {
+            setIsSavingPrompt(false)
+        }
+    }
+
+    const handleSaveReviewPrompt = async () => {
+        if (!deck) return
+
+        try {
+            setIsSavingPrompt(true)
+            const updatedDeck = await updateDeck(deck.id, {
+                ai_prompts: {
+                    ...deck.ai_prompts,
+                    review: editedReviewPrompt
+                }
+            })
+            setDeck(updatedDeck)
+            setIsEditingReviewPrompt(false)
+            toast.success("Review prompt updated successfully")
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update review prompt")
         } finally {
             setIsSavingPrompt(false)
         }
@@ -228,23 +262,24 @@ export default function DeckPage() {
                         </div>
                     </div>
 
-                    {/* AI Prompt */}
-                    <div className="pt-4 border-t">
-                        <Collapsible open={isPromptOpen} onOpenChange={setIsPromptOpen}>
+                    {/* AI Prompts */}
+                    <div className="pt-4 border-t space-y-4">
+                        {/* Question Prompt */}
+                        <Collapsible open={isQuestionPromptOpen} onOpenChange={setIsQuestionPromptOpen}>
                             <div className="flex items-center justify-between mb-3">
                                 <CollapsibleTrigger asChild>
                                     <Button variant="ghost" size="sm" className="p-0 h-auto font-semibold text-sm text-muted-foreground hover:text-foreground">
-                                        AI Review Prompt
+                                        AI Question Generation Prompt
                                         <span className="ml-2 text-xs">
-                                            {isPromptOpen ? "▼" : "▶"}
+                                            {isQuestionPromptOpen ? "▼" : "▶"}
                                         </span>
                                     </Button>
                                 </CollapsibleTrigger>
-                                {!isEditingPrompt && isPromptOpen && (
+                                {!isEditingQuestionPrompt && isQuestionPromptOpen && (
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={handleEditPrompt}
+                                        onClick={handleEditQuestionPrompt}
                                     >
                                         <Edit2 className="w-4 h-4 mr-2" />
                                         Edit
@@ -252,17 +287,17 @@ export default function DeckPage() {
                                 )}
                             </div>
                             <CollapsibleContent>
-                                {isEditingPrompt ? (
+                                {isEditingQuestionPrompt ? (
                                     <div className="space-y-3">
                                         <Textarea
-                                            value={editedPrompt}
-                                            onChange={(e) => setEditedPrompt(e.target.value)}
+                                            value={editedQuestionPrompt}
+                                            onChange={(e) => setEditedQuestionPrompt(e.target.value)}
                                             className="min-h-[300px] font-mono text-sm"
-                                            placeholder="Enter AI prompt for generating review questions..."
+                                            placeholder="Enter AI prompt for generating flashcard questions..."
                                         />
                                         <div className="flex gap-2">
                                             <Button
-                                                onClick={handleSavePrompt}
+                                                onClick={handleSaveQuestionPrompt}
                                                 disabled={isSavingPrompt}
                                                 size="sm"
                                             >
@@ -280,7 +315,7 @@ export default function DeckPage() {
                                             </Button>
                                             <Button
                                                 variant="outline"
-                                                onClick={handleCancelEdit}
+                                                onClick={handleCancelQuestionEdit}
                                                 disabled={isSavingPrompt}
                                                 size="sm"
                                             >
@@ -292,7 +327,77 @@ export default function DeckPage() {
                                 ) : (
                                     <div className="bg-muted/50 p-4 rounded-md">
                                         <pre className="whitespace-pre-wrap text-sm font-mono">
-                                            {deck.ai_prompts?.review || "No prompt set"}
+                                            {deck.ai_prompts?.question || "No question prompt set"}
+                                        </pre>
+                                    </div>
+                                )}
+                            </CollapsibleContent>
+                        </Collapsible>
+
+                        {/* Review Prompt */}
+                        <Collapsible open={isReviewPromptOpen} onOpenChange={setIsReviewPromptOpen}>
+                            <div className="flex items-center justify-between mb-3">
+                                <CollapsibleTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="p-0 h-auto font-semibold text-sm text-muted-foreground hover:text-foreground">
+                                        AI Review Feedback Prompt
+                                        <span className="ml-2 text-xs">
+                                            {isReviewPromptOpen ? "▼" : "▶"}
+                                        </span>
+                                    </Button>
+                                </CollapsibleTrigger>
+                                {!isEditingReviewPrompt && isReviewPromptOpen && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleEditReviewPrompt}
+                                    >
+                                        <Edit2 className="w-4 h-4 mr-2" />
+                                        Edit
+                                    </Button>
+                                )}
+                            </div>
+                            <CollapsibleContent>
+                                {isEditingReviewPrompt ? (
+                                    <div className="space-y-3">
+                                        <Textarea
+                                            value={editedReviewPrompt}
+                                            onChange={(e) => setEditedReviewPrompt(e.target.value)}
+                                            className="min-h-[300px] font-mono text-sm"
+                                            placeholder="Enter AI prompt for reviewing student answers..."
+                                        />
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={handleSaveReviewPrompt}
+                                                disabled={isSavingPrompt}
+                                                size="sm"
+                                            >
+                                                {isSavingPrompt ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Saving...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Save className="w-4 h-4 mr-2" />
+                                                        Save
+                                                    </>
+                                                )}
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleCancelReviewEdit}
+                                                disabled={isSavingPrompt}
+                                                size="sm"
+                                            >
+                                                <X className="w-4 h-4 mr-2" />
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-muted/50 p-4 rounded-md">
+                                        <pre className="whitespace-pre-wrap text-sm font-mono">
+                                            {deck.ai_prompts?.review || "No review prompt set"}
                                         </pre>
                                     </div>
                                 )}
