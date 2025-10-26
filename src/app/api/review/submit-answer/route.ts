@@ -31,7 +31,9 @@ export async function POST(request: Request) {
     const openai = getOpenAIClient()
 
     // Extract values from deck and word
-    const questionLanguage = getLanguageByCode(deck.que_lang)?.name || word.lang || "English"
+    const questionLanguage = getLanguageByCode(deck.que_lang)?.name
+      || getLanguageByCode(word.lang)?.name
+      || "English"
 
     // Ensure ans_langs is an array
     const answerLangsArray = Array.isArray(deck.ans_langs)
