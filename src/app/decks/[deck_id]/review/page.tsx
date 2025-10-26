@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { ArrowLeft, Loader2 } from "lucide-react"
 import { getDeckById } from "@/lib/decks/client-utils"
 import { DeckReviewClient } from "@/components/deck-review-client"
@@ -51,34 +50,29 @@ export default function DeckReviewPage() {
 
     if (error || !deck) {
         return (
-            <div className="flex flex-col gap-4 p-6">
-                <Button variant="outline" onClick={() => router.back()} className="w-fit">
+            <div className="flex flex-col gap-3 p-6">
+                <Button variant="ghost" size="sm" onClick={() => router.back()} className="w-fit">
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Go Back
                 </Button>
-                <Card className="border-destructive/50 bg-destructive/5">
-                    <CardContent className="pt-6">
-                        <p className="text-destructive">{error || "Deck not found"}</p>
-                    </CardContent>
-                </Card>
+                <p className="text-sm text-destructive">{error || "Deck not found"}</p>
             </div>
         )
     }
 
     return (
-        <div className="flex flex-col gap-6 p-6">
+        <div className="flex flex-col gap-4 p-6 max-w-6xl">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold">{deck.name}</h1>
-                    <p className="text-muted-foreground mt-1">Review Session</p>
+                    <h1 className="text-2xl font-bold">{deck.name}</h1>
+                    <p className="text-xs text-muted-foreground mt-0.5">Review Session</p>
                 </div>
-                <Button variant="outline" onClick={() => router.back()}>
-                    <ArrowLeft className="w-4 h-4 mr-2" />
+                <Button variant="ghost" size="sm" onClick={() => router.back()}>
+                    <ArrowLeft className="w-4 h-4 mr-1" />
                     Exit
                 </Button>
             </div>
 
-            {/* Review Component */}
             <DeckReviewClient deckId={deck.id} queLanguage={deck.que_lang} />
         </div>
     )

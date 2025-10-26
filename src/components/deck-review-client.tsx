@@ -9,7 +9,6 @@ import { getDeckById } from "@/lib/decks/client-utils"
 import { getWordById } from "@/lib/words/client-utils"
 import type { Deck } from "@/lib/types/deck"
 import type { Word } from "@/lib/types/words"
-import { ProgressBar } from "@/components/deck-review/ProgressBar"
 import { QuestionCard } from "@/components/deck-review/QuestionCard"
 import { HintAccordion } from "@/components/deck-review/HintAccordion"
 import { AnswerInput } from "@/components/deck-review/AnswerInput"
@@ -125,35 +124,37 @@ export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps)
 
   // Main review interface
   return (
-    <div className="space-y-6">
-      <ProgressBar currentIndex={currentCardIndex} total={cards.length} />
-
+    <div className="space-y-4">
       <QuestionCard
         question={questionData?.lemma}
         isLoading={isLoadingQuestion}
         language={queLanguage}
       />
 
-      <HintAccordion hint={questionData?.hint} />
+      <div className="space-y-2">
+        <HintAccordion hint={questionData?.hint} />
 
-      <AnswerInput
-        value={userAnswer}
-        onChange={setUserAnswer}
-        onSubmit={handleSubmitAnswer}
-        isLoading={isReviewingAnswer}
-        isDisabled={isLoadingQuestion}
-        hasReview={aiReview !== null}
-      />
-
-      <AIReviewCard review={aiReview} isLoading={isReviewingAnswer} />
+        <AnswerInput
+          value={userAnswer}
+          onChange={setUserAnswer}
+          onSubmit={handleSubmitAnswer}
+          isLoading={isReviewingAnswer}
+          isDisabled={isLoadingQuestion}
+          hasReview={aiReview !== null}
+        />
+      </div>
 
       {aiReview && (
-        <DifficultySelector
-          selectedDifficulty={selectedDifficulty}
-          onSelectDifficulty={selectDifficulty}
-          onSubmit={handleSubmitResult}
-          isLoading={isSubmittingReview}
-        />
+        <div className="space-y-3">
+          <AIReviewCard review={aiReview} isLoading={isReviewingAnswer} />
+
+          <DifficultySelector
+            selectedDifficulty={selectedDifficulty}
+            onSelectDifficulty={selectDifficulty}
+            onSubmit={handleSubmitResult}
+            isLoading={isSubmittingReview}
+          />
+        </div>
       )}
     </div>
   )
