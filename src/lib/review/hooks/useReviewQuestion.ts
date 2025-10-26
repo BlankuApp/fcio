@@ -52,11 +52,9 @@ export function useReviewQuestion(
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            word: wordData.lemma,
             collocation: collocation || undefined,
-            difficulty: currentDeck.diff_level,
-            questionLanguage: currentDeck.que_lang,
-            answerLanguages: currentDeck.ans_langs,
+            deck: currentDeck,
+            word: wordData,
           }),
           signal: abortController.signal,
         })
@@ -69,7 +67,7 @@ export function useReviewQuestion(
         return {
           lemma: data.question,
           hint:
-            data.hints.length > 0
+            Array.isArray(data.hints) && data.hints.length > 0
               ? data.hints
               : ["Try to provide an accurate translation with context."],
           difficulty: currentDeck.diff_level,

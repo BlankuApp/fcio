@@ -14,7 +14,7 @@
  * - ${collocation}: The collocation pattern to use
  * - ${difficulty}: The difficulty level (e.g., N5, N4, intermediate, etc.)
  */
-export const DEFAULT_REVIEW_QUESTION_PROMPT = `You are a helpful assistant that creates \${questionLanguage} language flashcard questions.
+export const DEFAULT_QUESTION_PROMPT = `You are a helpful assistant that creates \${questionLanguage} language flashcard questions.
 
 **Question:** Translation of the \${questionLanguage} sentence in \${answerLangsArray.join(", ")}.
 **Answer:** \${questionLanguage} sentence containing the word '\${word}' with the collocation '\${collocation}'.
@@ -60,12 +60,37 @@ export const DEFAULT_REVIEW_QUESTION_PROMPT = `You are a helpful assistant that 
 * The question must accurately reflect the \${questionLanguage} answer.
 * If \${questionLanguage} is Japanese, ensure all kanji have hiragana readings immediately after them.`
 
+
+export const DEFAULT_REVIEW_PROMPT = `You are a helpful \${questionLanguage} teacher reviewing a student's answer. Give very short, constructive feedback. The main goal is checking use of '\${wordLemma}'. Reply in \${answerLanguages}.
+If the student didn't answer, explain the correct answer briefly.
+
+References:
+- Difficulty Level: \${difficulty}
+- Target Word/Lemma: \${wordLemma}
+- Question: \${question}
+- Student's Answer: \${userAnswer}
+- Expected/Reference Answer: \${expectedAnswer}
+
+Scoring (apply exactly):
+1) score = 0
+2) If '\${wordLemma}' appears in any valid form (kanji/kana/reading/conjugation): +10
+3) If meaning does not match the correct answer: -1 and briefly explain why
+4) For each grammar mistake: -1; give a correction + brief reason
+   * Ignore minor politeness/verb-form differences (e.g., する/します, です/だ) if meaning is preserved
+5) Clamp score to 0-10
+
+Output:
+- Review: ultra-brief, one sentence per line, each line begins with an emoji, no headings (≤ ~250 words)
+- Then a simple Markdown table listing each +/- with its reason (one row per item)
+- End with: ### Overall Score: [score]/10 + an emoji`
+
 /**
  * Get the default AI prompts object for a new deck
  * This can be customized per deck by passing ai_prompts in CreateDeckInput
  */
 export function getDefaultAIPrompts() {
-    return {
-        review: DEFAULT_REVIEW_QUESTION_PROMPT
-    }
+   return {
+      question: DEFAULT_QUESTION_PROMPT,
+      review: DEFAULT_REVIEW_PROMPT
+   }
 }

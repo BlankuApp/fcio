@@ -6,6 +6,7 @@
 import { createClient } from "@/lib/supabase/client"
 import type { Deck, CreateDeckInput, UpdateDeckInput, ListDecksOptions } from "@/lib/types/deck"
 import { getDefaultAIPrompts } from "@/lib/constants/ai-prompts"
+import { normalizeDeck } from "@/lib/decks/utils"
 
 /**
  * Generate a YouTube-like ID (11 character alphanumeric string)
@@ -79,7 +80,7 @@ export async function getDeckById(id: string): Promise<Deck | null> {
         throw new Error(`Failed to fetch deck: ${error.message}`)
     }
 
-    return (data as Deck) || null
+    return data ? normalizeDeck(data) : null
 }
 
 /**
@@ -111,7 +112,7 @@ export async function listUserDecks(userId: string, options?: ListDecksOptions):
     const { data, error } = await query.order("created_at", { ascending: false })
 
     if (error) throw new Error(`Failed to list decks: ${error.message}`)
-    return (data as Deck[]) || []
+    return (data || []).map(normalizeDeck)
 }
 
 /**

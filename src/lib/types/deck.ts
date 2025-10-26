@@ -8,6 +8,7 @@ import type { ProficiencyLevel } from "@/lib/constants/languages"
  * AI prompts for deck review and other AI features
  */
 export interface AIPrompts {
+    question?: string                  // AI prompt for generating questions
     review?: string                    // AI prompt for review mode
     [key: string]: string | undefined  // Allow additional prompt types
 }
