@@ -6,32 +6,7 @@
 import { createClient } from "@/lib/supabase/client"
 import type { Deck, CreateDeckInput, UpdateDeckInput, ListDecksOptions } from "@/lib/types/deck"
 import { getDefaultAIPrompts } from "@/lib/constants/ai-prompts"
-
-/**
- * Normalize deck data to ensure ans_langs is always an array
- * This handles cases where PostgreSQL arrays might not be parsed correctly
- */
-function normalizeDeck(deck: Record<string, unknown>): Deck {
-    let ansLangs: string[] = []
-
-    if (Array.isArray(deck.ans_langs)) {
-        ansLangs = deck.ans_langs
-    } else if (typeof deck.ans_langs === "string") {
-        // Try to parse as JSON first (handles stringified arrays like '["fa"]')
-        try {
-            const parsed = JSON.parse(deck.ans_langs)
-            ansLangs = Array.isArray(parsed) ? parsed : [deck.ans_langs]
-        } catch {
-            // If parsing fails, treat as single language code
-            ansLangs = [deck.ans_langs]
-        }
-    }
-
-    return {
-        ...deck,
-        ans_langs: ansLangs
-    } as Deck
-}
+import { normalizeDeck } from "@/lib/decks/utils"
 
 /**
  * Generate a YouTube-like ID (11 character alphanumeric string)
