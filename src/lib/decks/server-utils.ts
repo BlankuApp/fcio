@@ -8,6 +8,32 @@ import type { Deck, CreateDeckInput, UpdateDeckInput, ListDecksOptions } from "@
 import { getDefaultAIPrompts } from "@/lib/constants/ai-prompts"
 
 /**
+ * Normalize deck data to ensure ans_langs is always an array
+ * This handles cases where PostgreSQL arrays might not be parsed correctly
+ */
+function normalizeDeck(deck: Record<string, unknown>): Deck {
+    let ansLangs: string[] = []
+
+    if (Array.isArray(deck.ans_langs)) {
+        ansLangs = deck.ans_langs
+    } else if (typeof deck.ans_langs === "string") {
+        // Try to parse as JSON first (handles stringified arrays like '["fa"]')
+        try {
+            const parsed = JSON.parse(deck.ans_langs)
+            ansLangs = Array.isArray(parsed) ? parsed : [deck.ans_langs]
+        } catch {
+            // If parsing fails, treat as single language code
+            ansLangs = [deck.ans_langs]
+        }
+    }
+
+    return {
+        ...deck,
+        ans_langs: ansLangs
+    } as Deck
+}
+
+/**
  * Generate a YouTube-like ID (11 character alphanumeric string)
  */
 export function generateDeckId(): string {
@@ -79,7 +105,7 @@ export async function getDeckById(id: string): Promise<Deck | null> {
         throw new Error(`Failed to fetch deck: ${error.message}`)
     }
 
-    return (data as Deck) || null
+    return data ? normalizeDeck(data) : null
 }
 
 /**
@@ -99,7 +125,7 @@ export async function getDeckByIdForUser(id: string, userId: string): Promise<De
         throw new Error(`Failed to fetch deck: ${error.message}`)
     }
 
-    return (data as Deck) || null
+    return data ? normalizeDeck(data) : null
 }
 
 /**
@@ -131,7 +157,7 @@ export async function listUserDecks(userId: string, options?: ListDecksOptions):
     const { data, error } = await query.order("created_at", { ascending: false })
 
     if (error) throw new Error(`Failed to list decks: ${error.message}`)
-    return (data as Deck[]) || []
+    return (data || []).map(normalizeDeck)
 }
 
 /**

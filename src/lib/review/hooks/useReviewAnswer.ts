@@ -1,6 +1,8 @@
 import { useState } from "react"
 import type { ReviewDifficulty } from "@/lib/review/difficulty-options"
 import type { ReviewQuestion } from "./useReviewQuestion"
+import type { Deck } from "@/lib/types/deck"
+import type { Word } from "@/lib/types/words"
 
 interface UseReviewAnswerReturn {
   userAnswer: string
@@ -9,17 +11,13 @@ interface UseReviewAnswerReturn {
   selectedDifficulty: ReviewDifficulty | null
   isLoading: boolean
   isSubmittingReview: boolean
-  submitAnswer: (questionData: ReviewQuestion, answer: string) => Promise<void>
+  submitAnswer: (questionData: ReviewQuestion, answer: string, deck: Deck, word: Word) => Promise<void>
   selectDifficulty: (difficulty: ReviewDifficulty) => void
   submitResult: (cardId: string, difficulty: ReviewDifficulty) => Promise<void>
   resetAnswer: () => void
 }
 
-interface UseReviewAnswerProps {
-  reviewPrompt?: string  // Optional: custom AI prompt from deck's ai_prompts.review
-}
-
-export function useReviewAnswer(props?: UseReviewAnswerProps): UseReviewAnswerReturn {
+export function useReviewAnswer(): UseReviewAnswerReturn {
   const [userAnswer, setUserAnswer] = useState("")
   const [aiReview, setAiReview] = useState<string | null>(null)
   const [selectedDifficulty, setSelectedDifficulty] =
@@ -29,7 +27,9 @@ export function useReviewAnswer(props?: UseReviewAnswerProps): UseReviewAnswerRe
 
   const getAIReview = async (
     question: ReviewQuestion,
-    answer: string
+    answer: string,
+    deck: Deck,
+    word: Word
   ): Promise<string> => {
     try {
       const response = await fetch("/api/review/submit-answer", {
@@ -40,9 +40,8 @@ export function useReviewAnswer(props?: UseReviewAnswerProps): UseReviewAnswerRe
         body: JSON.stringify({
           question: question.lemma,
           userAnswer: answer,
-          difficulty: question.difficulty,
-          wordLemma: question.lemma,
-          reviewPrompt: props?.reviewPrompt,
+          deck,
+          word,
         }),
       })
 
@@ -129,13 +128,15 @@ Keep practicing! Language learning is a gradual process.`
 
   const submitAnswer = async (
     questionData: ReviewQuestion,
-    answer: string
+    answer: string,
+    deck: Deck,
+    word: Word
   ): Promise<void> => {
     if (!answer.trim()) return
 
     try {
       setIsLoading(true)
-      const review = await getAIReview(questionData, answer)
+      const review = await getAIReview(questionData, answer, deck, word)
       setAiReview(review)
     } catch (err) {
       console.error("Failed to get AI review:", err)

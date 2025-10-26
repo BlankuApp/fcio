@@ -10,6 +10,9 @@ interface HintAccordionProps {
 }
 
 export function HintAccordion({ hint }: HintAccordionProps) {
+  // Ensure hint is always an array
+  const hints = Array.isArray(hint) ? hint : []
+
   return (
     <Accordion type="single" collapsible className="w-full">
       <AccordionItem
@@ -27,11 +30,11 @@ export function HintAccordion({ hint }: HintAccordionProps) {
             <div className="flex gap-3">
               <div className="mt-1 text-amber-600 dark:text-amber-400">💭</div>
               <div className="text-sm leading-relaxed text-foreground">
-                {!hint || hint.length === 0 ? (
+                {hints.length === 0 ? (
                   <p>Loading hints...</p>
                 ) : (
                   <ul className="space-y-2">
-                    {hint.map((h, idx) => (
+                    {hints.map((h, idx) => (
                       <li key={idx} className="flex gap-2">
                         <span className="text-amber-600 dark:text-amber-400">•</span>
                         <span>{h}</span>

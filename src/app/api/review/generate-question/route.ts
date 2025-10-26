@@ -1,12 +1,12 @@
 import { getOpenAIClient } from "@/lib/ai/openai-client"
+import type { Deck } from "@/lib/types/deck"
+import type { Word } from "@/lib/types/words"
+import { getLanguageByCode } from "@/lib/constants/languages"
 
 export interface GenerateQuestionRequest {
-  word: string
   collocation?: string
-  difficulty: string
-  questionLanguage: string
-  answerLanguages: string[]
-  questionPrompt?: string  // Optional: custom AI prompt from deck's ai_prompts.question
+  deck: Deck          // Full deck data
+  word: Word          // Full word data
 }
 
 export interface QuestionResponse {
@@ -42,8 +42,19 @@ export async function POST(request: Request) {
   try {
     const body: GenerateQuestionRequest = await request.json()
 
-    const { word, collocation, difficulty, questionLanguage, answerLanguages, questionPrompt } =
-      body
+    const { collocation, deck, word } = body
+
+    // Validate required fields
+    if (!deck || !word) {
+      throw new Error("Missing required fields: deck and word")
+    }
+
+    // Extract values from deck and word
+    const difficulty = deck.diff_level
+    const questionLanguage = getLanguageByCode(deck.que_lang)?.name || deck.que_lang
+    const answerLanguages = deck.ans_langs
+    const questionPrompt = deck.ai_prompts?.question
+    const wordLemma = word.lemma
 
     // Ensure answerLanguages is an array
     const answerLangsArray = Array.isArray(answerLanguages)
@@ -55,6 +66,11 @@ export async function POST(request: Request) {
     if (answerLangsArray.length === 0) {
       throw new Error("No answer languages provided")
     }
+
+    // Convert language codes to names
+    const answerLangNames = answerLangsArray
+      .map((langCode) => getLanguageByCode(langCode)?.name)
+      .filter((name): name is string => name !== undefined)
     // Get OpenAI client
     const openai = getOpenAIClient()
 
@@ -65,8 +81,8 @@ export async function POST(request: Request) {
       // Use custom prompt and replace template variables
       prompt = questionPrompt
         .replace(/\$\{questionLanguage\}/g, questionLanguage)
-        .replace(/\$\{answerLangsArray\.join\(", "\)\}/g, answerLangsArray.join(", "))
-        .replace(/\$\{word\}/g, word)
+        .replace(/\$\{answerLangsArray\}/g, answerLangNames.join(" and "))
+        .replace(/\$\{word\}/g, wordLemma)
         .replace(/\$\{collocation\}/g, collocation || '')
         .replace(/\$\{difficulty\}/g, difficulty)
     } else {
@@ -74,8 +90,8 @@ export async function POST(request: Request) {
       prompt = `
 You are a helpful assistant that creates ${questionLanguage} language flashcard questions.
 
-**Question:** Translation of the ${questionLanguage} sentence in ${answerLangsArray.join(", ")}.
-**Answer:** ${questionLanguage} sentence containing the word '${word}' with the collocation '${collocation}'.
+**Question:** Translation of the ${questionLanguage} sentence in ${answerLangNames}.
+**Answer:** ${questionLanguage} sentence containing the word '${wordLemma}' with the collocation '${collocation}'.
 **Hints:** Translations and readings of other words (excluding the target word), separated by commas.
 
 ---
@@ -84,22 +100,22 @@ You are a helpful assistant that creates ${questionLanguage} language flashcard 
 
 1. **Create a Sentence as Answer**
 
-   * Generate a short, natural daily-life sentence at ${difficulty} level using '${word}'.
+   * Generate a short, natural daily-life sentence at ${difficulty} level using '${wordLemma}'.
    * You may refer to '${collocation}' for context, but do **not** copy it directly.
-   * Use only ${difficulty}-appropriate vocabulary besides '${word}'.
+   * Use only ${difficulty}-appropriate vocabulary besides '${wordLemma}'.
    * Consider this as the 'Answer' field in the output.
 
 2. **Translate and Verify as Question**
 
-   * Provide an accurate, literal translation of the generated 'Answer' in ${answerLangsArray.join(", ")}.
+   * Provide an accurate, literal translation of the generated 'Answer' in ${answerLangNames}.
    * Consider the translation as the 'Question' field in the output.
 
 3. **Hints**
 
-   * Except '${word}', include translations and readings of the other words in the generated 'Answer'.
+   * Except '${wordLemma}', include translations and readings of the other words in the generated 'Answer'.
    * Separate hints with commas only.
    * Format kanji with readings: e.g., 参加(さんか)する, 賢(かしこ)い.
-   * Double check to remove '${word}' from hints.
+   * Double check to remove '${wordLemma}' from hints.
 
 ---
 
@@ -114,7 +130,7 @@ You are a helpful assistant that creates ${questionLanguage} language flashcard 
 
 ### Constraints
 
-* Exclude '${word}' from hints.
+* Exclude '${wordLemma}' from hints.
 * The question must accurately reflect the ${questionLanguage} answer.
 * If ${questionLanguage} is Japanese, ensure all kanji have hiragana readings immediately after them.
 `

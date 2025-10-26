@@ -6,7 +6,9 @@ import { useReviewCards } from "@/lib/review/hooks/useReviewCards"
 import { useReviewQuestion } from "@/lib/review/hooks/useReviewQuestion"
 import { useReviewAnswer } from "@/lib/review/hooks/useReviewAnswer"
 import { getDeckById } from "@/lib/decks/client-utils"
+import { getWordById } from "@/lib/words/client-utils"
 import type { Deck } from "@/lib/types/deck"
+import type { Word } from "@/lib/types/words"
 import { ProgressBar } from "@/components/deck-review/ProgressBar"
 import { QuestionCard } from "@/components/deck-review/QuestionCard"
 import { HintAccordion } from "@/components/deck-review/HintAccordion"
@@ -23,6 +25,7 @@ interface DeckReviewClientProps {
 
 export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps) {
   const [deck, setDeck] = useState<Deck | null>(null)
+  const [currentWord, setCurrentWord] = useState<Word | null>(null)
 
   const {
     cards,
@@ -50,7 +53,7 @@ export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps)
     selectDifficulty,
     submitResult,
     resetAnswer,
-  } = useReviewAnswer({ reviewPrompt: deck?.ai_prompts?.review })
+  } = useReviewAnswer()
 
   // Fetch deck data to get AI prompts
   useEffect(() => {
@@ -64,6 +67,24 @@ export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps)
     }
     loadDeck()
   }, [deckId])
+
+  // Fetch current word data
+  useEffect(() => {
+    const loadWord = async () => {
+      if (!currentCard?.word_id) {
+        setCurrentWord(null)
+        return
+      }
+      try {
+        const wordData = await getWordById(currentCard.word_id)
+        setCurrentWord(wordData)
+      } catch (err) {
+        console.error("Failed to load word:", err)
+        setCurrentWord(null)
+      }
+    }
+    loadWord()
+  }, [currentCard?.word_id])
 
   // Loading cards state
   if (isLoadingCards) {
@@ -86,8 +107,8 @@ export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps)
 
   // Handle submit answer
   const handleSubmitAnswer = async () => {
-    if (!questionData) return
-    await submitAnswer(questionData, userAnswer)
+    if (!questionData || !deck || !currentWord) return
+    await submitAnswer(questionData, userAnswer, deck, currentWord)
   }
 
   // Handle submit result and move to next card

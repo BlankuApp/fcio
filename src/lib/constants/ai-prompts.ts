@@ -61,7 +61,7 @@ export const DEFAULT_QUESTION_PROMPT = `You are a helpful assistant that creates
 * If \${questionLanguage} is Japanese, ensure all kanji have hiragana readings immediately after them.`
 
 
-export const DEFAULT_REVIEW_PROMPT = `You are a helpful Japanese teacher reviewing a student's answer. Give very short, constructive feedback. The main goal is checking use of '{self.word}'. Reply in {" and ".join(target_languages[:2])}.
+export const DEFAULT_REVIEW_PROMPT = `You are a helpful \${questionLanguage} teacher reviewing a student's answer. Give very short, constructive feedback. The main goal is checking use of '\${wordLemma}'. Reply in \${answerLanguages}.
 If the student didn't answer, explain the correct answer briefly.
 
 References:
@@ -73,7 +73,7 @@ References:
 
 Scoring (apply exactly):
 1) score = 0
-2) If '{self.word}' appears in any valid form (kanji/kana/reading/conjugation): +10
+2) If '\${wordLemma}' appears in any valid form (kanji/kana/reading/conjugation): +10
 3) If meaning does not match the correct answer: -1 and briefly explain why
 4) For each grammar mistake: -1; give a correction + brief reason
    * Ignore minor politeness/verb-form differences (e.g., する/します, です/だ) if meaning is preserved
