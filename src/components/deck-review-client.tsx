@@ -1,9 +1,12 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { useReviewCards } from "@/lib/review/hooks/useReviewCards"
 import { useReviewQuestion } from "@/lib/review/hooks/useReviewQuestion"
 import { useReviewAnswer } from "@/lib/review/hooks/useReviewAnswer"
+import { getDeckById } from "@/lib/decks/client-utils"
+import type { Deck } from "@/lib/types/deck"
 import { ProgressBar } from "@/components/deck-review/ProgressBar"
 import { QuestionCard } from "@/components/deck-review/QuestionCard"
 import { HintAccordion } from "@/components/deck-review/HintAccordion"
@@ -19,6 +22,8 @@ interface DeckReviewClientProps {
 }
 
 export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps) {
+  const [deck, setDeck] = useState<Deck | null>(null)
+
   const {
     cards,
     isLoadingCards,
@@ -45,7 +50,20 @@ export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps)
     selectDifficulty,
     submitResult,
     resetAnswer,
-  } = useReviewAnswer()
+  } = useReviewAnswer({ reviewPrompt: deck?.ai_prompts?.review })
+
+  // Fetch deck data to get AI prompts
+  useEffect(() => {
+    const loadDeck = async () => {
+      try {
+        const deckData = await getDeckById(deckId)
+        setDeck(deckData)
+      } catch (err) {
+        console.error("Failed to load deck:", err)
+      }
+    }
+    loadDeck()
+  }, [deckId])
 
   // Loading cards state
   if (isLoadingCards) {

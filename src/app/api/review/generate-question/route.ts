@@ -6,6 +6,7 @@ export interface GenerateQuestionRequest {
   difficulty: string
   questionLanguage: string
   answerLanguages: string[]
+  questionPrompt?: string  // Optional: custom AI prompt from deck's ai_prompts.question
 }
 
 export interface QuestionResponse {
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   try {
     const body: GenerateQuestionRequest = await request.json()
 
-    const { word, collocation, difficulty, questionLanguage, answerLanguages } =
+    const { word, collocation, difficulty, questionLanguage, answerLanguages, questionPrompt } =
       body
 
     // Ensure answerLanguages is an array
@@ -57,8 +58,20 @@ export async function POST(request: Request) {
     // Get OpenAI client
     const openai = getOpenAIClient()
 
-    // Build the prompt with word, deck, and collocation data
-    const prompt = `
+    // Build the prompt - use custom prompt if provided, otherwise use default
+    let prompt: string
+
+    if (questionPrompt) {
+      // Use custom prompt and replace template variables
+      prompt = questionPrompt
+        .replace(/\$\{questionLanguage\}/g, questionLanguage)
+        .replace(/\$\{answerLangsArray\.join\(", "\)\}/g, answerLangsArray.join(", "))
+        .replace(/\$\{word\}/g, word)
+        .replace(/\$\{collocation\}/g, collocation || '')
+        .replace(/\$\{difficulty\}/g, difficulty)
+    } else {
+      // Default prompt
+      prompt = `
 You are a helpful assistant that creates ${questionLanguage} language flashcard questions.
 
 **Question:** Translation of the ${questionLanguage} sentence in ${answerLangsArray.join(", ")}.
@@ -105,6 +118,7 @@ You are a helpful assistant that creates ${questionLanguage} language flashcard 
 * The question must accurately reflect the ${questionLanguage} answer.
 * If ${questionLanguage} is Japanese, ensure all kanji have hiragana readings immediately after them.
 `
+    }
 
     const response = await openai.responses.create({
       model: "gpt-5-mini",

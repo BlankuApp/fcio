@@ -15,7 +15,11 @@ interface UseReviewAnswerReturn {
   resetAnswer: () => void
 }
 
-export function useReviewAnswer(): UseReviewAnswerReturn {
+interface UseReviewAnswerProps {
+  reviewPrompt?: string  // Optional: custom AI prompt from deck's ai_prompts.review
+}
+
+export function useReviewAnswer(props?: UseReviewAnswerProps): UseReviewAnswerReturn {
   const [userAnswer, setUserAnswer] = useState("")
   const [aiReview, setAiReview] = useState<string | null>(null)
   const [selectedDifficulty, setSelectedDifficulty] =
@@ -38,6 +42,7 @@ export function useReviewAnswer(): UseReviewAnswerReturn {
           userAnswer: answer,
           difficulty: question.difficulty,
           wordLemma: question.lemma,
+          reviewPrompt: props?.reviewPrompt,
         }),
       })
 

@@ -57,6 +57,7 @@ export function useReviewQuestion(
             difficulty: currentDeck.diff_level,
             questionLanguage: currentDeck.que_lang,
             answerLanguages: currentDeck.ans_langs,
+            questionPrompt: currentDeck.ai_prompts?.question,
           }),
           signal: abortController.signal,
         })

@@ -6,13 +6,14 @@ export interface SubmitAnswerRequest {
   expectedAnswer?: string
   difficulty: string
   wordLemma: string
+  reviewPrompt?: string  // Optional: custom AI prompt from deck's ai_prompts.review
 }
 
 export async function POST(request: Request) {
   try {
     const body: SubmitAnswerRequest = await request.json()
 
-    const { question, userAnswer, expectedAnswer, difficulty, wordLemma } = body
+    const { question, userAnswer, expectedAnswer, difficulty, wordLemma, reviewPrompt } = body
 
     // Validate required fields
     if (!question || !userAnswer || !wordLemma) {
@@ -27,8 +28,20 @@ export async function POST(request: Request) {
     // Get OpenAI client
     const openai = getOpenAIClient()
 
-    // Build the prompt for AI review
-    const prompt = `You are a helpful Japanese teacher reviewing a student's answer. Give very short, constructive feedback. The main goal is checking use of '{self.word}'. Reply in {" and ".join(target_languages[:2])}.
+    // Build the prompt - use custom prompt if provided, otherwise use default
+    let prompt: string
+
+    if (reviewPrompt) {
+      // Use custom prompt and replace template variables
+      prompt = reviewPrompt
+        .replace(/\$\{difficulty\}/g, difficulty)
+        .replace(/\$\{wordLemma\}/g, wordLemma)
+        .replace(/\$\{question\}/g, question)
+        .replace(/\$\{userAnswer\}/g, userAnswer)
+        .replace(/\$\{expectedAnswer\}/g, expectedAnswer || '')
+    } else {
+      // Default prompt
+      prompt = `You are a helpful Japanese teacher reviewing a student's answer. Give very short, constructive feedback. The main goal is checking use of '{self.word}'. Reply in {" and ".join(target_languages[:2])}.
 If the student didn't answer, explain the correct answer briefly.
 
 References:
@@ -50,6 +63,7 @@ Output:
 - Review: ultra-brief, one sentence per line, each line begins with an emoji, no headings (≤ ~250 words)
 - Then a simple Markdown table listing each +/- with its reason (one row per item)
 - End with: ### Overall Score: [score]/10 + an emoji`
+    }
 
     const response = await openai.responses.create({
       model: "gpt-5-mini",
