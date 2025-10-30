@@ -146,7 +146,11 @@ export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps)
 
       {aiReview && (
         <div className="space-y-3">
-          <AIReviewCard review={aiReview} isLoading={isReviewingAnswer} />
+          <AIReviewCard
+            review={aiReview}
+            answer={questionData?.answer}
+            isLoading={isReviewingAnswer}
+          />
 
           <DifficultySelector
             selectedDifficulty={selectedDifficulty}
