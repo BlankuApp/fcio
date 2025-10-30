@@ -85,12 +85,121 @@ Output:
 - End with: ### Overall Score: [score]/10 + an emoji`
 
 /**
+ * AGENT 1: Generate Answer Sentence
+ * Creates a natural sentence in the target language using the word and collocation
+ *
+ * Variables:
+ * - ${questionLanguage}: The target language for the sentence
+ * - ${word}: The target word/lemma to use
+ * - ${collocation}: The collocation pattern for context
+ * - ${difficulty}: The difficulty level (e.g., N5, N4, intermediate)
+ */
+export const DEFAULT_ANSWER_GENERATION_PROMPT = `You are a language learning assistant that creates natural sentences in \${questionLanguage}.
+
+### Task
+Generate a short, natural daily-life sentence at \${difficulty} level that uses the word '\${word}'.
+
+### Guidelines
+* The sentence should be natural and appropriate for everyday conversation
+* Use \${difficulty}-appropriate vocabulary for all words except '\${word}'
+* You may refer to '\${collocation}' for context, but do **not** copy it directly
+* Keep the sentence simple and clear
+* If \${questionLanguage} is Japanese, include hiragana readings for all kanji using parentheses format: 明日(あした)
+
+### Example
+**Word:** 参加する | **Level:** N4 | **Collocation:** 会議に参加する | **Language:** Japanese
+
+**Output:** 明日(あした)会議(かいぎ)に参加(さんか)する。
+
+### Constraints
+* Must use '\${word}' in the sentence
+* Use only \${difficulty}-appropriate vocabulary besides '\${word}'
+* Keep it concise (one sentence)
+* For Japanese: all kanji must have hiragana readings`
+
+/**
+ * AGENT 2: Translate Answer to Question
+ * Translates the generated answer sentence into the student's native language(s)
+ *
+ * Variables:
+ * - ${answerSentence}: The sentence to translate (from Agent 1)
+ * - ${answerLangsArray}: Array of target translation languages
+ * - ${questionLanguage}: The source language of the sentence
+ */
+export const DEFAULT_QUESTION_TRANSLATION_PROMPT = `You are a professional translator specializing in language learning materials.
+
+### Task
+Provide an accurate, literal translation of the following \${questionLanguage} sentence into \${answerLangsArray.join(" and ")}.
+
+### Sentence to Translate
+\${answerSentence}
+
+### Guidelines
+* Provide literal, word-for-word translation when possible
+* Maintain the natural meaning and context
+* If translating to multiple languages, separate them with " / "
+* Keep translations clear and simple for language learners
+
+### Example
+**Sentence:** 明日(あした)会議(かいぎ)に参加(さんか)する。
+**Languages:** English and Persian
+**Output:** I will attend the meeting tomorrow / من فردا در جلسه شرکت می‌کنم.
+
+### Constraints
+* Must be accurate and literal
+* Use " / " separator for multiple languages
+* Maintain the same meaning as the original sentence`
+
+/**
+ * AGENT 3: Generate Hints
+ * Creates helpful hints for words in the sentence (excluding the target word)
+ *
+ * Variables:
+ * - ${answerSentence}: The sentence with the target word (from Agent 1)
+ * - ${word}: The target word to exclude from hints
+ * - ${answerLangsArray}: Array of languages for hint translations
+ * - ${questionLanguage}: The language of the sentence
+ */
+export const DEFAULT_HINTS_GENERATION_PROMPT = `You are a language learning assistant that creates helpful vocabulary hints.
+
+### Task
+Generate hints for all words in the sentence EXCEPT the target word '\${word}'.
+
+### Sentence
+\${answerSentence}
+
+### Guidelines
+* Provide translations and readings for each word EXCEPT '\${word}'
+* Format: "translation1/translation2: original_word(reading)"
+* For Japanese kanji, include hiragana readings: 明日(あした)
+* Separate multiple translations with "/"
+* Provide hints in \${answerLangsArray.join(" and ")}
+* Return as an array of strings
+* Double-check to ensure '\${word}' is NOT included in hints
+
+### Example
+**Sentence:** 明日(あした)会議(かいぎ)に参加(さんか)する。
+**Target Word:** 参加する
+**Languages:** English and Persian
+
+**Output:** ["tomorrow/فردا: 明日(あした)", "meeting/جلسه: 会議(かいぎ)"]
+
+### Constraints
+* Must exclude '\${word}' from hints
+* Each hint should help learners understand OTHER words in the sentence
+* For Japanese: include both translation and reading
+* Return as valid JSON array of strings`
+
+/**
  * Get the default AI prompts object for a new deck
  * This can be customized per deck by passing ai_prompts in CreateDeckInput
  */
 export function getDefaultAIPrompts() {
    return {
       question: DEFAULT_QUESTION_PROMPT,
-      review: DEFAULT_REVIEW_PROMPT
+      review: DEFAULT_REVIEW_PROMPT,
+      answerGeneration: DEFAULT_ANSWER_GENERATION_PROMPT,
+      questionTranslation: DEFAULT_QUESTION_TRANSLATION_PROMPT,
+      hintsGeneration: DEFAULT_HINTS_GENERATION_PROMPT
    }
 }

@@ -36,11 +36,20 @@ export default function DeckPage() {
     const [isDeleting, setIsDeleting] = useState(false)
     const [isEditingQuestionPrompt, setIsEditingQuestionPrompt] = useState(false)
     const [isEditingReviewPrompt, setIsEditingReviewPrompt] = useState(false)
+    const [isEditingAnswerPrompt, setIsEditingAnswerPrompt] = useState(false)
+    const [isEditingQuestionTranslationPrompt, setIsEditingQuestionTranslationPrompt] = useState(false)
+    const [isEditingHintsPrompt, setIsEditingHintsPrompt] = useState(false)
     const [editedQuestionPrompt, setEditedQuestionPrompt] = useState("")
     const [editedReviewPrompt, setEditedReviewPrompt] = useState("")
+    const [editedAnswerPrompt, setEditedAnswerPrompt] = useState("")
+    const [editedQuestionTranslationPrompt, setEditedQuestionTranslationPrompt] = useState("")
+    const [editedHintsPrompt, setEditedHintsPrompt] = useState("")
     const [isSavingPrompt, setIsSavingPrompt] = useState(false)
     const [isQuestionPromptOpen, setIsQuestionPromptOpen] = useState(false)
     const [isReviewPromptOpen, setIsReviewPromptOpen] = useState(false)
+    const [isAnswerPromptOpen, setIsAnswerPromptOpen] = useState(false)
+    const [isQuestionTranslationPromptOpen, setIsQuestionTranslationPromptOpen] = useState(false)
+    const [isHintsPromptOpen, setIsHintsPromptOpen] = useState(false)
     const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
     useEffect(() => {
@@ -139,6 +148,102 @@ export default function DeckPage() {
             toast.success("Review prompt updated successfully")
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to update review prompt")
+        } finally {
+            setIsSavingPrompt(false)
+        }
+    }
+
+    // Answer Generation Prompt handlers
+    const handleEditAnswerPrompt = () => {
+        setEditedAnswerPrompt(deck?.ai_prompts?.answerGeneration || "")
+        setIsEditingAnswerPrompt(true)
+    }
+
+    const handleCancelAnswerEdit = () => {
+        setIsEditingAnswerPrompt(false)
+        setEditedAnswerPrompt("")
+    }
+
+    const handleSaveAnswerPrompt = async () => {
+        if (!deck) return
+
+        try {
+            setIsSavingPrompt(true)
+            const updatedDeck = await updateDeck(deck.id, {
+                ai_prompts: {
+                    ...deck.ai_prompts,
+                    answerGeneration: editedAnswerPrompt
+                }
+            })
+            setDeck(updatedDeck)
+            setIsEditingAnswerPrompt(false)
+            toast.success("Answer generation prompt updated successfully")
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update answer generation prompt")
+        } finally {
+            setIsSavingPrompt(false)
+        }
+    }
+
+    // Question Translation Prompt handlers
+    const handleEditQuestionTranslationPrompt = () => {
+        setEditedQuestionTranslationPrompt(deck?.ai_prompts?.questionTranslation || "")
+        setIsEditingQuestionTranslationPrompt(true)
+    }
+
+    const handleCancelQuestionTranslationEdit = () => {
+        setIsEditingQuestionTranslationPrompt(false)
+        setEditedQuestionTranslationPrompt("")
+    }
+
+    const handleSaveQuestionTranslationPrompt = async () => {
+        if (!deck) return
+
+        try {
+            setIsSavingPrompt(true)
+            const updatedDeck = await updateDeck(deck.id, {
+                ai_prompts: {
+                    ...deck.ai_prompts,
+                    questionTranslation: editedQuestionTranslationPrompt
+                }
+            })
+            setDeck(updatedDeck)
+            setIsEditingQuestionTranslationPrompt(false)
+            toast.success("Question translation prompt updated successfully")
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update question translation prompt")
+        } finally {
+            setIsSavingPrompt(false)
+        }
+    }
+
+    // Hints Generation Prompt handlers
+    const handleEditHintsPrompt = () => {
+        setEditedHintsPrompt(deck?.ai_prompts?.hintsGeneration || "")
+        setIsEditingHintsPrompt(true)
+    }
+
+    const handleCancelHintsEdit = () => {
+        setIsEditingHintsPrompt(false)
+        setEditedHintsPrompt("")
+    }
+
+    const handleSaveHintsPrompt = async () => {
+        if (!deck) return
+
+        try {
+            setIsSavingPrompt(true)
+            const updatedDeck = await updateDeck(deck.id, {
+                ai_prompts: {
+                    ...deck.ai_prompts,
+                    hintsGeneration: editedHintsPrompt
+                }
+            })
+            setDeck(updatedDeck)
+            setIsEditingHintsPrompt(false)
+            toast.success("Hints generation prompt updated successfully")
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update hints generation prompt")
         } finally {
             setIsSavingPrompt(false)
         }
@@ -398,6 +503,216 @@ export default function DeckPage() {
                                     <div className="bg-muted/50 p-4 rounded-md">
                                         <pre className="whitespace-pre-wrap text-sm font-mono">
                                             {deck.ai_prompts.review}
+                                        </pre>
+                                    </div>
+                                )}
+                            </CollapsibleContent>
+                        </Collapsible>
+
+                        {/* Answer Generation Prompt (Agent 1) */}
+                        <Collapsible open={isAnswerPromptOpen} onOpenChange={setIsAnswerPromptOpen}>
+                            <div className="flex items-center justify-between mb-3">
+                                <CollapsibleTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="p-0 h-auto font-semibold text-sm text-muted-foreground hover:text-foreground">
+                                        AI Answer Generation Prompt (Agent 1)
+                                        <span className="ml-2 text-xs">
+                                            {isAnswerPromptOpen ? "▼" : "▶"}
+                                        </span>
+                                    </Button>
+                                </CollapsibleTrigger>
+                                {!isEditingAnswerPrompt && isAnswerPromptOpen && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleEditAnswerPrompt}
+                                    >
+                                        <Edit2 className="w-4 h-4 mr-2" />
+                                        Edit
+                                    </Button>
+                                )}
+                            </div>
+                            <CollapsibleContent>
+                                {isEditingAnswerPrompt ? (
+                                    <div className="space-y-3">
+                                        <Textarea
+                                            value={editedAnswerPrompt}
+                                            onChange={(e) => setEditedAnswerPrompt(e.target.value)}
+                                            className="min-h-[300px] font-mono text-sm"
+                                            placeholder="Enter AI prompt for generating answer sentences..."
+                                        />
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={handleSaveAnswerPrompt}
+                                                disabled={isSavingPrompt}
+                                                size="sm"
+                                            >
+                                                {isSavingPrompt ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Saving...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Save className="w-4 h-4 mr-2" />
+                                                        Save
+                                                    </>
+                                                )}
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleCancelAnswerEdit}
+                                                disabled={isSavingPrompt}
+                                                size="sm"
+                                            >
+                                                <X className="w-4 h-4 mr-2" />
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-muted/50 p-4 rounded-md">
+                                        <pre className="whitespace-pre-wrap text-sm font-mono">
+                                            {deck.ai_prompts?.answerGeneration || "Not set"}
+                                        </pre>
+                                    </div>
+                                )}
+                            </CollapsibleContent>
+                        </Collapsible>
+
+                        {/* Question Translation Prompt (Agent 2) */}
+                        <Collapsible open={isQuestionTranslationPromptOpen} onOpenChange={setIsQuestionTranslationPromptOpen}>
+                            <div className="flex items-center justify-between mb-3">
+                                <CollapsibleTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="p-0 h-auto font-semibold text-sm text-muted-foreground hover:text-foreground">
+                                        AI Question Translation Prompt (Agent 2)
+                                        <span className="ml-2 text-xs">
+                                            {isQuestionTranslationPromptOpen ? "▼" : "▶"}
+                                        </span>
+                                    </Button>
+                                </CollapsibleTrigger>
+                                {!isEditingQuestionTranslationPrompt && isQuestionTranslationPromptOpen && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleEditQuestionTranslationPrompt}
+                                    >
+                                        <Edit2 className="w-4 h-4 mr-2" />
+                                        Edit
+                                    </Button>
+                                )}
+                            </div>
+                            <CollapsibleContent>
+                                {isEditingQuestionTranslationPrompt ? (
+                                    <div className="space-y-3">
+                                        <Textarea
+                                            value={editedQuestionTranslationPrompt}
+                                            onChange={(e) => setEditedQuestionTranslationPrompt(e.target.value)}
+                                            className="min-h-[300px] font-mono text-sm"
+                                            placeholder="Enter AI prompt for translating questions..."
+                                        />
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={handleSaveQuestionTranslationPrompt}
+                                                disabled={isSavingPrompt}
+                                                size="sm"
+                                            >
+                                                {isSavingPrompt ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Saving...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Save className="w-4 h-4 mr-2" />
+                                                        Save
+                                                    </>
+                                                )}
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleCancelQuestionTranslationEdit}
+                                                disabled={isSavingPrompt}
+                                                size="sm"
+                                            >
+                                                <X className="w-4 h-4 mr-2" />
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-muted/50 p-4 rounded-md">
+                                        <pre className="whitespace-pre-wrap text-sm font-mono">
+                                            {deck.ai_prompts?.questionTranslation || "Not set"}
+                                        </pre>
+                                    </div>
+                                )}
+                            </CollapsibleContent>
+                        </Collapsible>
+
+                        {/* Hints Generation Prompt (Agent 3) */}
+                        <Collapsible open={isHintsPromptOpen} onOpenChange={setIsHintsPromptOpen}>
+                            <div className="flex items-center justify-between mb-3">
+                                <CollapsibleTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="p-0 h-auto font-semibold text-sm text-muted-foreground hover:text-foreground">
+                                        AI Hints Generation Prompt (Agent 3)
+                                        <span className="ml-2 text-xs">
+                                            {isHintsPromptOpen ? "▼" : "▶"}
+                                        </span>
+                                    </Button>
+                                </CollapsibleTrigger>
+                                {!isEditingHintsPrompt && isHintsPromptOpen && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleEditHintsPrompt}
+                                    >
+                                        <Edit2 className="w-4 h-4 mr-2" />
+                                        Edit
+                                    </Button>
+                                )}
+                            </div>
+                            <CollapsibleContent>
+                                {isEditingHintsPrompt ? (
+                                    <div className="space-y-3">
+                                        <Textarea
+                                            value={editedHintsPrompt}
+                                            onChange={(e) => setEditedHintsPrompt(e.target.value)}
+                                            className="min-h-[300px] font-mono text-sm"
+                                            placeholder="Enter AI prompt for generating hints..."
+                                        />
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={handleSaveHintsPrompt}
+                                                disabled={isSavingPrompt}
+                                                size="sm"
+                                            >
+                                                {isSavingPrompt ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Saving...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Save className="w-4 h-4 mr-2" />
+                                                        Save
+                                                    </>
+                                                )}
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleCancelHintsEdit}
+                                                disabled={isSavingPrompt}
+                                                size="sm"
+                                            >
+                                                <X className="w-4 h-4 mr-2" />
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-muted/50 p-4 rounded-md">
+                                        <pre className="whitespace-pre-wrap text-sm font-mono">
+                                            {deck.ai_prompts?.hintsGeneration || "Not set"}
                                         </pre>
                                     </div>
                                 )}

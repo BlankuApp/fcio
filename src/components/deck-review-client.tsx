@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { useReviewCards } from "@/lib/review/hooks/useReviewCards"
-import { useReviewQuestion } from "@/lib/review/hooks/useReviewQuestion"
+import { useReviewQuestionThreeAgent } from "@/lib/review/hooks/useReviewQuestionThreeAgent"
 import { useReviewAnswer } from "@/lib/review/hooks/useReviewAnswer"
 import { getDeckById } from "@/lib/decks/client-utils"
 import { getWordById } from "@/lib/words/client-utils"
@@ -36,7 +36,7 @@ export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps)
   } = useReviewCards(deckId)
 
   const currentCard = cards[currentCardIndex]
-  const { questionData, isLoadingQuestion } = useReviewQuestion(
+  const { questionData, isLoadingQuestion, loadingStep } = useReviewQuestionThreeAgent(
     currentCard,
     currentCardIndex
   )
@@ -128,6 +128,7 @@ export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps)
       <QuestionCard
         question={questionData?.lemma}
         isLoading={isLoadingQuestion}
+        loadingStep={loadingStep}
         language={queLanguage}
       />
 
