@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { useReviewCards } from "@/lib/review/hooks/useReviewCards"
-import { useReviewQuestionThreeAgent } from "@/lib/review/hooks/useReviewQuestionThreeAgent"
+import { useAnswerGeneration } from "@/lib/review/hooks/useAnswerGeneration"
+import { useQuestionTranslation } from "@/lib/review/hooks/useQuestionTranslation"
+import { useHintsGeneration } from "@/lib/review/hooks/useHintsGeneration"
 import { useReviewAnswer } from "@/lib/review/hooks/useReviewAnswer"
 import { getDeckById } from "@/lib/decks/client-utils"
 import { getWordById } from "@/lib/words/client-utils"
@@ -36,10 +38,40 @@ export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps)
   } = useReviewCards(deckId)
 
   const currentCard = cards[currentCardIndex]
-  const { questionData, isLoadingQuestion, loadingStep } = useReviewQuestionThreeAgent(
+
+  // Agent 1: Generate answer sentence
+  const { answerSentence, isLoading: isLoadingAnswer } = useAnswerGeneration(
     currentCard,
     currentCardIndex
   )
+
+  // Agent 2: Translate answer to question (depends on Agent 1)
+  const { question, isLoading: isLoadingQuestion } = useQuestionTranslation(
+    currentCard,
+    answerSentence,
+    currentCardIndex
+  )
+
+  // Agent 3: Generate hints (depends on Agent 1)
+  const { hints, isLoading: isLoadingHints } = useHintsGeneration(
+    currentCard,
+    answerSentence,
+    currentCardIndex
+  )
+
+  // Combine loading states and data
+  const isLoadingQuestionData = isLoadingAnswer || isLoadingQuestion || isLoadingHints
+  const loadingStep = isLoadingAnswer ? 'answer' : isLoadingQuestion ? 'question' : isLoadingHints ? 'hints' : null
+
+  // Combine question data from all three agents
+  const questionData = answerSentence && question && hints
+    ? {
+        question,
+        answer: answerSentence,
+        hint: hints,
+        difficulty: deck?.diff_level || "beginner",
+      }
+    : null
 
   const {
     userAnswer,
@@ -127,7 +159,7 @@ export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps)
     <div className="space-y-4">
       <QuestionCard
         question={questionData?.question}
-        isLoading={isLoadingQuestion}
+        isLoading={isLoadingQuestionData}
         loadingStep={loadingStep}
         language={queLanguage}
       />
@@ -140,7 +172,7 @@ export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps)
           onChange={setUserAnswer}
           onSubmit={handleSubmitAnswer}
           isLoading={isReviewingAnswer}
-          isDisabled={isLoadingQuestion}
+          isDisabled={isLoadingQuestionData}
           hasReview={aiReview !== null}
         />
       </div>
