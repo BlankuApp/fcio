@@ -53,7 +53,12 @@ export async function POST(request: Request) {
     const difficulty = deck.diff_level
     const questionLanguage = getLanguageByCode(deck.que_lang)?.name || deck.que_lang
     const answerLanguages = deck.ans_langs
-    const questionPrompt = deck.ai_prompts.question
+    // Legacy route - this is deprecated in favor of the three-agent system
+    // Return error if 'question' prompt is not available (new decks don't have it)
+    const questionPrompt = deck.ai_prompts?.question
+    if (!questionPrompt) {
+      throw new Error("This deck uses the new three-agent question generation system. Please use the updated review flow.")
+    }
     const wordLemma = word.lemma
 
     // Ensure answerLanguages is an array

@@ -280,11 +280,19 @@ array of language codes)
  - Each deck has an `ai_prompts` field (JSONB) for customizable AI
 prompts
  - Default prompts defined in `src/lib/constants/ai-prompts.ts`
- - **Default Question Prompt**: Template for generating flashcard
-questions with AI
-   - Uses template variables: `${questionLanguage}`,
-`${answerLangsArray}`, `${word}`, `${collocation}`, `${difficulty}`
-   - Creates sentence-based flashcards with hints and translations
+ - **Three-Agent Question Generation System**:
+   - **Answer Generation**: Creates natural sentences using the target
+word
+     - Uses template variables: `${questionLanguage}`, `${word}`,
+`${collocation}`, `${difficulty}`
+   - **Question Translation**: Translates the answer sentence to
+student's native language(s)
+     - Uses template variables: `${answerSentence}`,
+`${answerLangsArray}`, `${questionLanguage}`
+   - **Hints Generation**: Provides helpful hints for words in the
+sentence
+     - Uses template variables: `${answerSentence}`, `${word}`,
+`${answerLangsArray}`, `${questionLanguage}`
  - **Default Review Prompt**: Template for reviewing student answers
    - Uses template variables: `${difficulty}`, `${wordLemma}`,
 `${question}`, `${userAnswer}`, `${expectedAnswer}`
@@ -292,8 +300,8 @@ questions with AI
  - Automatically applied to new decks via `getDefaultAIPrompts()`
  - Prompts can be customized per deck by passing `ai_prompts` in
 `CreateDeckInput`
- - Structure: `{"question": "prompt text...", "review": "prompt
-text...", [otherFeature]: "prompt..."}`
+ - Structure: `{"answerGeneration": "prompt...", "questionTranslation":
+"prompt...", "hintsGeneration": "prompt...", "review": "prompt..."}`
 
  ## Environment Setup
  
