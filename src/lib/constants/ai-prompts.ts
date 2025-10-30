@@ -50,7 +50,7 @@ export const DEFAULT_QUESTION_PROMPT = `You are a helpful assistant that creates
 **Word:** 参加する  |  **Level:** N4  |  **Languages:** English and Persian | **Collocation:** 会議に参加する | **Question Language:** Japanese
 **Question:** I will attend the meeting tomorrow / من فردا در جلسه شرکت می‌کنم.
 **Answer:** 明日(あした)会議(かいぎ)に参加(さんか)する。
-**Hints:** tomorrow: 明日(あした), meeting: 会議(かいぎ)
+**Hints:** ["tomorrow/فردا: 明日(あした)", "meeting/جلسه: 会議(かいぎ)"]
 
 ---
 
