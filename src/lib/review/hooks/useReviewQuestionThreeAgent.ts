@@ -4,7 +4,7 @@ import { getDeckById } from "@/lib/decks/client-utils"
 import type { DeckWord } from "@/lib/types/deck-words"
 
 export interface ReviewQuestion {
-  lemma: string
+  question: string
   answer: string
   hint: string[]
   difficulty: string
@@ -121,7 +121,7 @@ export function useReviewQuestionThreeAgent(
 
         // Combine all results
         return {
-          lemma: questionData.question,    // The translated question (from Agent 2)
+          question: questionData.question,    // The translated question (from Agent 2)
           answer: answerSentence,          // The answer sentence (from Agent 1)
           hint: Array.isArray(hintsData.hints) && hintsData.hints.length > 0
             ? hintsData.hints
@@ -145,7 +145,7 @@ export function useReviewQuestionThreeAgent(
           )
 
           return {
-            lemma: `Translate: ${wordData?.lemma}${collocation ? ` (${collocation})` : ""}`,
+            question: `Translate: ${wordData?.lemma}${collocation ? ` (${collocation})` : ""}`,
             answer: wordData?.lemma || "",
             hint: ["Try to provide an accurate translation with context."],
             difficulty: currentDeck?.diff_level || "beginner",

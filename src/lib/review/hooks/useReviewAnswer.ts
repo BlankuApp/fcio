@@ -38,7 +38,7 @@ export function useReviewAnswer(): UseReviewAnswerReturn {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          question: question.lemma,
+          question: question.question,
           userAnswer: answer,
           deck,
           word,
@@ -78,7 +78,7 @@ export function useReviewAnswer(): UseReviewAnswerReturn {
         const fallbackReview = `Great attempt! Your answer "${answer}" shows engagement with the material.
 
 Key observations:
-- You responded to the question about: "${question.lemma}"
+- You responded to the question about: "${question.question}"
 - This is a ${question.difficulty} level question
 - Consider reviewing the expected usage in context to refine your understanding
 - Pay attention to nuances and grammatical accuracy in future attempts

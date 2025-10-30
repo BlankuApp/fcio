@@ -4,7 +4,7 @@ import { getDeckById } from "@/lib/decks/client-utils"
 import type { DeckWord } from "@/lib/types/deck-words"
 
 export interface ReviewQuestion {
-  lemma: string
+  question: string
   answer: string
   hint: string[]
   difficulty: string
@@ -66,7 +66,7 @@ export function useReviewQuestion(
 
         const data = await response.json()
         return {
-          lemma: data.question,
+          question: data.question,
           answer: data.answer,
           hint:
             Array.isArray(data.hints) && data.hints.length > 0
@@ -91,7 +91,7 @@ export function useReviewQuestion(
           )
 
           return {
-            lemma: `Translate: ${wordData?.lemma}${collocation ? ` (${collocation})` : ""}`,
+            question: `Translate: ${wordData?.lemma}${collocation ? ` (${collocation})` : ""}`,
             answer: wordData?.lemma || "",
             hint: ["Try to provide an accurate translation with context."],
             difficulty: currentDeck?.diff_level || "beginner",

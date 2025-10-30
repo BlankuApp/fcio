@@ -126,7 +126,7 @@ export function DeckReviewClient({ deckId, queLanguage }: DeckReviewClientProps)
   return (
     <div className="space-y-4">
       <QuestionCard
-        question={questionData?.lemma}
+        question={questionData?.question}
         isLoading={isLoadingQuestion}
         loadingStep={loadingStep}
         language={queLanguage}
