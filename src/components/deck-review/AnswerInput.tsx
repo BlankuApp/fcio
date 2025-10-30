@@ -1,7 +1,6 @@
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 
 interface AnswerInputProps {
   value: string
@@ -20,44 +19,39 @@ export function AnswerInput({
   isDisabled,
   hasReview,
 }: AnswerInputProps) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey && !hasReview && value.trim()) {
+      e.preventDefault()
+      onSubmit()
+    }
+  }
+
   return (
-    <Card className="border-primary/20">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-            <span className="text-lg">✏️</span>
-          </div>
-          <div>
-            <CardTitle>Your Answer</CardTitle>
-            <CardDescription>Type your response below</CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Textarea
-          placeholder="Share your answer here..."
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={isDisabled || hasReview}
-          className="min-h-[120px] resize-none border-primary/20 focus:border-primary/50"
-        />
-        {!hasReview && (
-          <Button
-            onClick={onSubmit}
-            disabled={!value.trim() || isLoading || isDisabled}
-            className="w-full"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Reviewing...
-              </>
-            ) : (
-              "Submit Answer"
-            )}
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+    <div className="flex gap-2 items-center">
+      <Input
+        placeholder="Type your answer..."
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+        disabled={isDisabled || hasReview}
+        className="flex-1"
+      />
+      {!hasReview && (
+        <Button
+          onClick={onSubmit}
+          disabled={!value.trim() || isLoading || isDisabled}
+          size="sm"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Reviewing...
+            </>
+          ) : (
+            "Submit"
+          )}
+        </Button>
+      )}
+    </div>
   )
 }
