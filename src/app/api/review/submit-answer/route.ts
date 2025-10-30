@@ -67,40 +67,42 @@ export async function POST(request: Request) {
       .replace(/\$\{userAnswer\}/g, userAnswer)
       .replace(/\$\{expectedAnswer\}/g, expectedAnswer || '')
 
-    const response = await openai.responses.create({
-      model: "gpt-5-mini",
-      input: [
+    // Create a streaming response using chat completions
+    const stream = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
         {
-          "role": "user",
-          "content": [
-            {
-              "type": "input_text",
-              "text": prompt
-            }
-          ]
+          role: "user",
+          content: prompt
         }
       ],
-      text: {
-        "format": {
-          "type": "text"
-        },
-        "verbosity": "medium"
-      },
-      reasoning: {
-        "effort": "low",
-        "summary": null
-      },
-      tools: [],
-      store: false,
-      include: [
-        "reasoning.encrypted_content",
-      ]
+      stream: true,
     });
 
-    // Extract the JSON from the response
-    const content = response.output_text
+    // Create a ReadableStream to send chunks to the client
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of stream) {
+            // Send the text delta to the client
+            const content = chunk.choices[0]?.delta?.content
+            if (content) {
+              controller.enqueue(new TextEncoder().encode(content))
+            }
+          }
+          controller.close()
+        } catch (error) {
+          controller.error(error)
+        }
+      },
+    })
 
-    return Response.json(content)
+    return new Response(readableStream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+      },
+    })
   } catch (error) {
     console.error("Error reviewing answer:", error)
     return Response.json(

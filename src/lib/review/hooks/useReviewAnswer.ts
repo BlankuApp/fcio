@@ -30,7 +30,7 @@ export function useReviewAnswer(): UseReviewAnswerReturn {
     answer: string,
     deck: Deck,
     word: Word
-  ): Promise<string> => {
+  ): Promise<void> => {
     try {
       const response = await fetch("/api/review/submit-answer", {
         method: "POST",
@@ -49,14 +49,33 @@ export function useReviewAnswer(): UseReviewAnswerReturn {
         throw new Error(`Failed to get AI review: ${response.statusText}`)
       }
 
-      const data = await response.json()
-      return data || "Review generated successfully."
+      // Handle streaming response
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (!reader) {
+        throw new Error("Response body is not readable")
+      }
+
+      // Clear previous review and start streaming
+      setAiReview("")
+
+      while (true) {
+        const { done, value } = await reader.read()
+
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+
+        // Append chunk to the current review
+        setAiReview((prev) => (prev || "") + chunk)
+      }
     } catch (err) {
       console.error("Error getting AI review:", err)
 
       // Fallback: Return a generic but helpful review
       try {
-        return `Great attempt! Your answer "${answer}" shows engagement with the material.
+        const fallbackReview = `Great attempt! Your answer "${answer}" shows engagement with the material.
 
 Key observations:
 - You responded to the question about: "${question.lemma}"
@@ -65,9 +84,10 @@ Key observations:
 - Pay attention to nuances and grammatical accuracy in future attempts
 
 Keep practicing! Language learning is a gradual process.`
+        setAiReview(fallbackReview)
       } catch (fallbackErr) {
         console.error("Error generating fallback review:", fallbackErr)
-        return "Thank you for your answer. Please try again or review the material."
+        setAiReview("Thank you for your answer. Please try again or review the material.")
       }
     }
   }
@@ -136,8 +156,7 @@ Keep practicing! Language learning is a gradual process.`
 
     try {
       setIsLoading(true)
-      const review = await getAIReview(questionData, answer, deck, word)
-      setAiReview(review)
+      await getAIReview(questionData, answer, deck, word)
     } catch (err) {
       console.error("Failed to get AI review:", err)
       setAiReview("Error getting review. Please try again.")
