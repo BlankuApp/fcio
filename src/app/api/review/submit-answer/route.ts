@@ -55,46 +55,17 @@ export async function POST(request: Request) {
     const answerLanguages = target_languages.join(" and ");
     const difficulty = deck.diff_level;
     const wordLemma = word.lemma
-    const reviewPrompt = deck.ai_prompts?.review
+    const reviewPrompt = deck.ai_prompts.review
 
-    // Build the prompt - use custom prompt if provided, otherwise use default
-    let prompt: string
-
-    if (reviewPrompt) {
-      // Use custom prompt and replace template variables
-      prompt = reviewPrompt
-        .replace(/\$\{questionLanguage\}/g, questionLanguage)
-        .replace(/\$\{answerLanguages\}/g, answerLanguages)
-        .replace(/\$\{difficulty\}/g, difficulty)
-        .replace(/\$\{wordLemma\}/g, wordLemma)
-        .replace(/\$\{question\}/g, question)
-        .replace(/\$\{userAnswer\}/g, userAnswer)
-        .replace(/\$\{expectedAnswer\}/g, expectedAnswer || '')
-    } else {
-      // Default prompt
-      prompt = `You are a helpful ${questionLanguage} teacher reviewing a student's answer. Give very short, constructive feedback. The main goal is checking use of '${wordLemma}'. Reply in ${answerLanguages}.
-If the student didn't answer, explain the correct answer briefly.
-
-References:
-- Difficulty Level: ${difficulty}
-- Target Word/Lemma: ${wordLemma}
-- Question: ${question}
-- Student's Answer: ${userAnswer}
-- Expected/Reference Answer: ${expectedAnswer}
-
-Scoring (apply exactly):
-1) score = 0
-2) If '${wordLemma}' appears in any valid form (kanji/kana/reading/conjugation): +10
-3) If meaning does not match the correct answer: -1 and briefly explain why
-4) For each grammar mistake: -1; give a correction + brief reason
-   * Ignore minor politeness/verb-form differences (e.g., する/します, です/だ) if meaning is preserved
-5) Clamp score to 0-10
-
-Output:
-- Review: ultra-brief, one sentence per line, each line begins with an emoji, no headings (≤ ~250 words)
-- Then a simple Markdown table listing each +/- with its reason (one row per item)
-- End with: ### Overall Score: [score]/10 + an emoji`
-    }
+    // Build the prompt by replacing template variables
+    const prompt = reviewPrompt
+      .replace(/\$\{questionLanguage\}/g, questionLanguage)
+      .replace(/\$\{answerLanguages\}/g, answerLanguages)
+      .replace(/\$\{difficulty\}/g, difficulty)
+      .replace(/\$\{wordLemma\}/g, wordLemma)
+      .replace(/\$\{question\}/g, question)
+      .replace(/\$\{userAnswer\}/g, userAnswer)
+      .replace(/\$\{expectedAnswer\}/g, expectedAnswer || '')
 
     const response = await openai.responses.create({
       model: "gpt-5-mini",

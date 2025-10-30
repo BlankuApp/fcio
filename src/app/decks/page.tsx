@@ -19,6 +19,7 @@ import { createDeck } from "@/lib/decks/client-utils"
 import { getCurrentUser } from "@/lib/auth/utils"
 import type { CreateDeckInput } from "@/lib/types/deck"
 import { PageHeader } from "@/components/page-header"
+import { getDefaultAIPrompts } from "@/lib/constants/ai-prompts"
 
 export default function NewDeckPage() {
     const router = useRouter()
@@ -31,6 +32,7 @@ export default function NewDeckPage() {
         que_lang: "en",
         ans_langs: ["es"],
         diff_level: "elementary",
+        ai_prompts: getDefaultAIPrompts(),
     })
 
     // Check authentication on mount

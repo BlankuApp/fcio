@@ -83,12 +83,12 @@ export default function DeckPage() {
     }
 
     const handleEditQuestionPrompt = () => {
-        setEditedQuestionPrompt(deck?.ai_prompts?.question || "")
+        setEditedQuestionPrompt(deck?.ai_prompts.question || "")
         setIsEditingQuestionPrompt(true)
     }
 
     const handleEditReviewPrompt = () => {
-        setEditedReviewPrompt(deck?.ai_prompts?.review || "")
+        setEditedReviewPrompt(deck?.ai_prompts.review || "")
         setIsEditingReviewPrompt(true)
     }
 
@@ -327,7 +327,7 @@ export default function DeckPage() {
                                 ) : (
                                     <div className="bg-muted/50 p-4 rounded-md">
                                         <pre className="whitespace-pre-wrap text-sm font-mono">
-                                            {deck.ai_prompts?.question || "No question prompt set"}
+                                            {deck.ai_prompts.question}
                                         </pre>
                                     </div>
                                 )}
@@ -397,7 +397,7 @@ export default function DeckPage() {
                                 ) : (
                                     <div className="bg-muted/50 p-4 rounded-md">
                                         <pre className="whitespace-pre-wrap text-sm font-mono">
-                                            {deck.ai_prompts?.review || "No review prompt set"}
+                                            {deck.ai_prompts.review}
                                         </pre>
                                     </div>
                                 )}

@@ -5,7 +5,6 @@
 
 import { createClient } from "@/lib/supabase/server"
 import type { Deck, CreateDeckInput, UpdateDeckInput, ListDecksOptions } from "@/lib/types/deck"
-import { getDefaultAIPrompts } from "@/lib/constants/ai-prompts"
 import { normalizeDeck } from "@/lib/decks/utils"
 
 /**
@@ -54,7 +53,7 @@ export async function createDeck(userId: string, input: CreateDeckInput): Promis
                 que_lang: input.que_lang,
                 ans_langs: ansLangs,
                 diff_level: input.diff_level,
-                ai_prompts: input.ai_prompts || getDefaultAIPrompts(),
+                ai_prompts: input.ai_prompts,
             },
         ])
         .select()

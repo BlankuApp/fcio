@@ -150,8 +150,8 @@ deletes)
    ans_langs: string[]                // Array of answer language
 codes
    diff_level: ProficiencyLevel       // Difficulty level
-   ai_prompts: AIPrompts | null       // JSON: AI prompts for deck
-features (e.g., {"review": "prompt..."})
+   ai_prompts: AIPrompts              // JSON: AI prompts for deck
+features (e.g., {"question": "prompt...", "review": "prompt..."})
    created_at: string
    updated_at: string
  }

@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const difficulty = deck.diff_level
     const questionLanguage = getLanguageByCode(deck.que_lang)?.name || deck.que_lang
     const answerLanguages = deck.ans_langs
-    const questionPrompt = deck.ai_prompts?.question
+    const questionPrompt = deck.ai_prompts.question
     const wordLemma = word.lemma
 
     // Ensure answerLanguages is an array
@@ -74,67 +74,13 @@ export async function POST(request: Request) {
     // Get OpenAI client
     const openai = getOpenAIClient()
 
-    // Build the prompt - use custom prompt if provided, otherwise use default
-    let prompt: string
-
-    if (questionPrompt) {
-      // Use custom prompt and replace template variables
-      prompt = questionPrompt
-        .replace(/\$\{questionLanguage\}/g, questionLanguage)
-        .replace(/\$\{answerLangsArray\}/g, answerLangNames.join(" and "))
-        .replace(/\$\{word\}/g, wordLemma)
-        .replace(/\$\{collocation\}/g, collocation || '')
-        .replace(/\$\{difficulty\}/g, difficulty)
-    } else {
-      // Default prompt
-      prompt = `
-You are a helpful assistant that creates ${questionLanguage} language flashcard questions.
-
-**Question:** Translation of the ${questionLanguage} sentence in ${answerLangNames}.
-**Answer:** ${questionLanguage} sentence containing the word '${wordLemma}' with the collocation '${collocation}'.
-**Hints:** Translations and readings of other words (excluding the target word), separated by commas.
-
----
-
-### Steps
-
-1. **Create a Sentence as Answer**
-
-   * Generate a short, natural daily-life sentence at ${difficulty} level using '${wordLemma}'.
-   * You may refer to '${collocation}' for context, but do **not** copy it directly.
-   * Use only ${difficulty}-appropriate vocabulary besides '${wordLemma}'.
-   * Consider this as the 'Answer' field in the output.
-
-2. **Translate and Verify as Question**
-
-   * Provide an accurate, literal translation of the generated 'Answer' in ${answerLangNames}.
-   * Consider the translation as the 'Question' field in the output.
-
-3. **Hints**
-
-   * Except '${wordLemma}', include translations and readings of the other words in the generated 'Answer'.
-   * Separate hints with commas only.
-   * Format kanji with readings: e.g., 参加(さんか)する, 賢(かしこ)い.
-   * Double check to remove '${wordLemma}' from hints.
-
----
-
-### Example
-
-**Word:** 参加する  |  **Level:** N4  |  **Languages:** English and Persian | **Collocation:** 会議に参加する | **Question Language:** Japanese
-**Question:** I will attend the meeting tomorrow / من فردا در جلسه شرکت می‌کنم.
-**Answer:** 明日(あした)会議(かいぎ)に参加(さんか)する。
-**Hints:** tomorrow: 明日(あした), meeting: 会議(かいぎ)
-
----
-
-### Constraints
-
-* Exclude '${wordLemma}' from hints.
-* The question must accurately reflect the ${questionLanguage} answer.
-* If ${questionLanguage} is Japanese, ensure all kanji have hiragana readings immediately after them.
-`
-    }
+    // Build the prompt by replacing template variables
+    const prompt = questionPrompt
+      .replace(/\$\{questionLanguage\}/g, questionLanguage)
+      .replace(/\$\{answerLangsArray\}/g, answerLangNames.join(" and "))
+      .replace(/\$\{word\}/g, wordLemma)
+      .replace(/\$\{collocation\}/g, collocation || '')
+      .replace(/\$\{difficulty\}/g, difficulty)
 
     const response = await openai.responses.create({
       model: "gpt-5-mini",
