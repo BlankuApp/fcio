@@ -7,22 +7,6 @@ export interface GenerateQuestionTranslationRequest {
   deck: Deck              // Full deck data
 }
 
-export interface QuestionTranslationResponse {
-  question: string        // The translated question in the student's language(s)
-}
-
-const questionTranslationSchema = {
-  type: "object",
-  properties: {
-    question: {
-      type: "string",
-      description: "The translation of the answer sentence into the student's native language(s)",
-    },
-  },
-  required: ["question"],
-  additionalProperties: false,
-}
-
 export async function POST(request: Request) {
   try {
     const body: GenerateQuestionTranslationRequest = await request.json()
@@ -31,7 +15,10 @@ export async function POST(request: Request) {
 
     // Validate required fields
     if (!deck || !answerSentence) {
-      throw new Error("Missing required fields: deck and answerSentence")
+      return Response.json(
+        { error: "Missing required fields: deck and answerSentence" },
+        { status: 400 }
+      )
     }
 
     // Extract values from deck
@@ -47,7 +34,10 @@ export async function POST(request: Request) {
         : []
 
     if (answerLangsArray.length === 0) {
-      throw new Error("No answer languages provided")
+      return Response.json(
+        { error: "No answer languages provided" },
+        { status: 400 }
+      )
     }
 
     // Convert language codes to names
@@ -64,40 +54,42 @@ export async function POST(request: Request) {
       .replace(/\$\{answerLangsArray\}/g, answerLangNames.join(" and "))
       .replace(/\$\{answerSentence\}/g, answerSentence)
 
-    const response = await openai.responses.create({
-      model: "gpt-5-mini",
-      input: [
+    // Create a streaming response using chat completions
+    const stream = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
         {
           role: "user",
-          content: [
-            {
-              "type": "input_text",
-              "text": prompt,
-            }
-          ],
-        },
+          content: prompt
+        }
       ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "question_translation_response",
-          strict: false,
-          schema: questionTranslationSchema
-        },
-        "verbosity": "high"
-      },
-      reasoning: {
-        "effort": "minimal",
-        "summary": null
+      stream: true,
+    })
+
+    // Create a ReadableStream to send chunks to the client
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of stream) {
+            // Send the text delta to the client
+            const content = chunk.choices[0]?.delta?.content
+            if (content) {
+              controller.enqueue(new TextEncoder().encode(content))
+            }
+          }
+          controller.close()
+        } catch (error) {
+          controller.error(error)
+        }
       },
     })
 
-    // Extract the JSON from the response
-    const content = response.output_text
-
-    const parsedResponse = JSON.parse(content) as QuestionTranslationResponse
-
-    return Response.json(parsedResponse)
+    return new Response(readableStream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+      },
+    })
   } catch (error) {
     console.error("Error generating question translation:", error)
     return Response.json(

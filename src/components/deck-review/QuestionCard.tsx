@@ -18,7 +18,7 @@ export function QuestionCard({
       case 'answer':
         return 'Generating sentence...'
       case 'question':
-        return 'Translating question...'
+        return 'Preparing your question...'
       case 'hints':
         return 'Generating hints...'
       default:
@@ -26,19 +26,34 @@ export function QuestionCard({
     }
   }
 
+  // Show loading message area when any step is loading
+  const showLoadingMessage = isLoading && loadingStep
+
+  // Show question content when we have text (even if still streaming)
+  const showQuestionContent = question && question.length > 0
+
   return (
-    <div className="space-y-2 max-w-2xl mx-auto px-4 py-6 bg-muted rounded-lg">
-      <p className="text-xs text-muted-foreground text-center">Translate to {language}</p>
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-4 space-y-2">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+    <div className="space-y-3 max-w-2xl mx-auto">
+      {/* Loading Status Bar - Always visible when loading */}
+      {showLoadingMessage && (
+        <div className="flex items-center justify-center gap-2 py-2 px-4 bg-primary/10 rounded-lg">
+          <Loader2 className="w-4 h-4 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">{getLoadingMessage()}</p>
         </div>
-      ) : (
-        <p className="text-xl font-bold leading-relaxed text-center" dir="auto">
-          {question || "Loading question..."}
-        </p>
       )}
+
+      {/* Question Card */}
+      <div className="px-6 py-6 bg-muted rounded-lg space-y-3">
+        {showQuestionContent ? (
+          <div className="text-lg leading-relaxed whitespace-pre-wrap" dir="auto">
+            {question}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center py-8">
+            <p className="text-muted-foreground">Waiting for question...</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -68,29 +68,31 @@ Generate a short, natural daily-life sentence at \${difficulty} level that uses 
  * - ${answerLangsArray}: Array of target translation languages
  * - ${questionLanguage}: The source language of the sentence
  */
-export const DEFAULT_QUESTION_TRANSLATION_PROMPT = `You are a professional translator specializing in language learning materials.
+export const DEFAULT_QUESTION_TRANSLATION_PROMPT = `You are a friendly language learning tutor helping a student practice vocabulary.
 
 ### Task
-Provide an accurate, literal translation of the following \${questionLanguage} sentence into \${answerLangsArray.join(" and ")}.
+Create a brief, conversational prompt that:
+1. Engages the student in a friendly way
+2. Asks them to translate the sentence from their native language(s) to \${questionLanguage}
+3. Provides the translation in \${answerLangsArray.join(" and ")} that the student should translate from
 
 ### Sentence to Translate
 \${answerSentence}
 
 ### Guidelines
-* Provide literal, word-for-word translation when possible
-* Maintain the natural meaning and context
-* If translating to multiple languages, separate them with " / "
-* Keep translations clear and simple for language learners
-
-### Example
-**Sentence:** 明日(あした)会議(かいぎ)に参加(さんか)する。
-**Languages:** English and Persian
-**Output:** I will attend the meeting tomorrow / من فردا در جلسه شرکت می‌کنم.
+* Start with a friendly conversational opener (e.g., "Now, let's check if you remember...", "Ready for a challenge?", "Time to practice!")
+* Mention the target word naturally in the conversation
+* Provide an accurate, literal translation of the sentence in \${answerLangsArray.join(" and ")}
+* Ask the student to translate it back to \${questionLanguage}
+* Keep the tone encouraging and supportive
+* If multiple languages, separate translations with " / "
 
 ### Constraints
-* Must be accurate and literal
+* Must be friendly and conversational
+* Must include the translation the student should work from
 * Use " / " separator for multiple languages
-* Maintain the same meaning as the original sentence`
+* Keep it concise but engaging
+* The translation must be accurate and literal`
 
 /**
  * AGENT 3: Generate Hints

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { flushSync } from "react-dom"
 import { getDeckById } from "@/lib/decks/client-utils"
 import type { DeckWord } from "@/lib/types/deck-words"
 
@@ -42,13 +43,14 @@ export function useQuestionTranslation(
       try {
         setIsLoading(true)
         setError(null)
+        setQuestion("") // Reset to empty string for streaming
 
         const currentDeck = await getDeckById(card.deck_id)
         if (!currentDeck) {
           throw new Error("Deck not found")
         }
 
-        // Translate Answer to Question
+        // Translate Answer to Question (streaming)
         const questionResponse = await fetch("/api/review/generate-question-translation", {
           method: "POST",
           headers: {
@@ -65,12 +67,47 @@ export function useQuestionTranslation(
           throw new Error("Failed to translate question")
         }
 
-        const questionData = await questionResponse.json()
+        // Handle streaming response
+        const reader = questionResponse.body?.getReader()
+        const decoder = new TextDecoder()
 
-        // Only update state if this request wasn't aborted
+        if (!reader) {
+          throw new Error("No response body")
+        }
+
+        let accumulatedText = ""
+        let lastUpdateTime = Date.now()
+        const UPDATE_INTERVAL = 50 // ms - update UI at most every 50ms for smooth streaming
+
+        while (true) {
+          const { done, value } = await reader.read()
+
+          if (done) {
+            break
+          }
+
+          const chunk = decoder.decode(value, { stream: true })
+          accumulatedText += chunk
+
+          // Throttle updates for smoother visual streaming
+          const now = Date.now()
+          const shouldUpdate = now - lastUpdateTime >= UPDATE_INTERVAL
+
+          // Update state with accumulated text if not aborted
+          if (!abortController.signal.aborted && shouldUpdate) {
+            flushSync(() => {
+              setQuestion(accumulatedText)
+            })
+            lastUpdateTime = now
+          }
+        }
+
+        // Final update with complete text
         if (!abortController.signal.aborted) {
-          setQuestion(questionData.question)
-          setIsLoading(false)
+          flushSync(() => {
+            setQuestion(accumulatedText)
+            setIsLoading(false)
+          })
         }
       } catch (err) {
         // Don't log abort errors as they're expected when effect re-runs
